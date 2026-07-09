@@ -5,7 +5,7 @@ const LS = {
     set: (key, val) => localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(val)),
 };
 
-// ===== СБОР СТАТИСТИКИ (ДОБАВЛЕНО) =====
+// ===== СБОР СТАТИСТИКИ =====
 function trackVisit() {
     // Общие посещения
     let visits = LS.get('visits') || 0;
@@ -356,10 +356,10 @@ function requestNotificationPermission() {
     }
 }
 
-// ===== 7. TELEGRAM БОТ =====
+// ===== 7. TELEGRAM БОТ (ОТПРАВКА В КАНАЛ) =====
 async function sendToTelegram(newsItems) {
     const BOT_TOKEN = '8422981212:AAFqUt5juqdC_l64q7FACOBw-mFL4f0hN8Y';
-    const CHAT_ID = '8380652624';
+    const CHAT_ID = '-1004345602790'; // ID вашего канала
 
     try {
         let message = '📰 *CoinDigest — Свежие новости*\n\n';
@@ -387,7 +387,7 @@ async function sendToTelegram(newsItems) {
 
         const result = await response.json();
         if (result.ok) {
-            console.log('✅ Новости отправлены в Telegram');
+            console.log('✅ Новости отправлены в канал');
         } else {
             console.error('❌ Ошибка Telegram:', result.description);
         }
@@ -593,7 +593,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // ТРЕКИНГ ПОСЕЩЕНИЙ (ДОБАВЛЕНО)
+    // Трекинг посещений
     trackVisit();
 
     setTimeout(requestNotificationPermission, 2000);
