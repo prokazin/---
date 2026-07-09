@@ -157,9 +157,6 @@ let pendingNotification = null;
 let adInterval = null;
 let currentAdIndex = 0;
 
-// Хранилище для уже отправленных в Telegram заголовков
-let sentTitles = [];
-
 // ===== ЗАГРУЗКА КРИПТОВАЛЮТ =====
 async function loadCrypto() {
     const container = document.getElementById('cryptoContainer');
@@ -310,7 +307,7 @@ async function loadNews() {
         container.appendChild(card);
     }
 
-    // Отправляем в Telegram ТОЛЬКО новые новости (с проверкой)
+    // Отправляем в Telegram ТОЛЬКО новые новости
     await sendNewNewsToTelegram(displayNews);
 }
 
@@ -398,10 +395,8 @@ async function sendNewNewsToTelegram(newsItems) {
     const BOT_TOKEN = '8422981212:AAFqUt5juqdC_l64q7FACOBw-mFL4f0hN8Y';
     const CHAT_ID = '-1004345602790';
 
-    // Загружаем уже отправленные заголовки из localStorage
     let sentTitles = LS.get('sentTitles') || [];
     
-    // Фильтруем новости, которых ещё не было
     const newItems = newsItems.filter(item => {
         const title = item.title || 'Новость';
         return !sentTitles.includes(title);
@@ -412,12 +407,10 @@ async function sendNewNewsToTelegram(newsItems) {
         return;
     }
 
-    // Обновляем список отправленных
     const newTitles = newItems.map(item => item.title || 'Новость');
     sentTitles = [...sentTitles, ...newTitles];
     LS.set('sentTitles', sentTitles);
 
-    // Берём первые 3 новые новости
     const toSend = newItems.slice(0, 3);
 
     try {
@@ -629,6 +622,217 @@ function shuffleArray(array) {
     return array;
 }
 
+// ============================================
+// ===== AI-АНАЛИЗ КРИПТОРЫНКА (Утро/Вечер) =====
+// ============================================
+
+// Функция генерации анализа
+async function generateCryptoAnalysis() {
+    try {
+        // 1. Получаем цены
+        const priceResponse = await fetch(
+            'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&sparkline=false'
+        );
+        const coins = await priceResponse.json();
+        
+        // 2. Получаем последние новости (из localStorage или загружаем)
+        let news = [];
+        try {
+            const newsResponse = await fetch('data/news_cache.json');
+            if (newsResponse.ok) {
+                news = await newsResponse.json();
+            }
+        } catch (e) {
+            // Если нет кэша, используем заглушку
+            news = [
+                { title: 'Биткоин показывает волатильность на фоне макроэкономических данных' },
+                { title: 'Эфир укрепляется благодаря развитию Layer-2 решений' },
+                { title: 'Альткоины демонстрируют смешанную динамику' }
+            ];
+        }
+
+        // 3. Анализируем изменения цен
+        let priceChanges = [];
+        let totalChange = 0;
+        let bullishCount = 0;
+        let bearishCount = 0;
+
+        coins.forEach(coin => {
+            const change = coin.price_change_percentage_24h || 0;
+            priceChanges.push({
+                name: coin.name,
+                symbol: coin.symbol.toUpperCase(),
+                price: coin.current_price,
+                change: change
+            });
+            totalChange += change;
+            if (change > 0) bullishCount++;
+            else if (change < 0) bearishCount++;
+        });
+
+        const avgChange = (totalChange / coins.length).toFixed(2);
+
+        // 4. Определяем общий тренд
+        let trend = 'нейтральный';
+        let trendEmoji = '⚖️';
+        if (avgChange > 3) {
+            trend = 'бычий';
+            trendEmoji = '🐂';
+        } else if (avgChange < -3) {
+            trend = 'медвежий';
+            trendEmoji = '🐻';
+        }
+
+        // 5. Анализируем новости (поиск ключевых слов)
+        const bullishKeywords = ['рост', 'бычий', 'растёт', 'увеличивается', 'покупают', 'инвестиции', 'одобрение', 'прорыв'];
+        const bearishKeywords = ['падение', 'медвежий', 'падает', 'снижается', 'продают', 'регуляция', 'запрет', 'риск'];
+        
+        let bullishNewsCount = 0;
+        let bearishNewsCount = 0;
+
+        news.slice(0, 10).forEach(item => {
+            const text = (item.title || '').toLowerCase();
+            bullishKeywords.forEach(kw => {
+                if (text.includes(kw)) bullishNewsCount++;
+            });
+            bearishKeywords.forEach(kw => {
+                if (text.includes(kw)) bearishNewsCount++;
+            });
+        });
+
+        // 6. Определяем настроение рынка
+        let sentiment = 'нейтральное';
+        let sentimentEmoji = '😐';
+        if (bullishNewsCount > bearishNewsCount + 2) {
+            sentiment = 'позитивное';
+            sentimentEmoji = '😊';
+        } else if (bearishNewsCount > bullishNewsCount + 2) {
+            sentiment = 'негативное';
+            sentimentEmoji = '😰';
+        }
+
+        // 7. Формируем анализ
+        const timeOfDay = new Date().getHours() < 12 ? 'утренний' : 'вечерний';
+        const dateStr = new Date().toLocaleDateString('ru-RU');
+        
+        // Топ-3 монеты по росту и падению
+        const sortedByChange = [...priceChanges].sort((a, b) => b.change - a.change);
+        const topGainers = sortedByChange.slice(0, 3).filter(c => c.change > 0);
+        const topLosers = sortedByChange.slice(-3).filter(c => c.change < 0);
+
+        let analysis = `📊 *${timeOfDay === 'утренний' ? '🌅 Утренний' : '🌙 Вечерний'} анализ крипторынка*\n`;
+        analysis += `📅 ${dateStr}\n\n`;
+
+        analysis += `📈 *Общий тренд:* ${trendEmoji} ${trend}\n`;
+        analysis += `📊 *Среднее изменение:* ${avgChange > 0 ? '+' : ''}${avgChange}%\n`;
+        analysis += `😌 *Настроение:* ${sentimentEmoji} ${sentiment}\n\n`;
+
+        if (topGainers.length > 0) {
+            analysis += `🟢 *Лидеры роста:*\n`;
+            topGainers.forEach(c => {
+                analysis += `  • ${c.symbol}: +${c.change.toFixed(2)}% ($${c.price.toFixed(2)})\n`;
+            });
+        }
+
+        if (topLosers.length > 0) {
+            analysis += `\n🔴 *Лидеры падения:*\n`;
+            topLosers.forEach(c => {
+                analysis += `  • ${c.symbol}: ${c.change.toFixed(2)}% ($${c.price.toFixed(2)})\n`;
+            });
+        }
+
+        analysis += `\n📰 *Ключевые новости:*\n`;
+        news.slice(0, 3).forEach(item => {
+            const title = item.title || 'Новость';
+            analysis += `  • ${title.substring(0, 60)}...\n`;
+        });
+
+        analysis += `\n💡 *Рекомендация:* `;
+        if (trend === 'бычий' && sentiment === 'позитивное') {
+            analysis += `Рынок выглядит позитивно. Возможно усиление восходящего тренда. 🟢`;
+        } else if (trend === 'медвежий' && sentiment === 'негативное') {
+            analysis += `Рынок находится под давлением. Рекомендуется осторожность. 🔴`;
+        } else {
+            analysis += `Рынок неопределённый. Следите за ключевыми уровнями. ⚖️`;
+        }
+
+        analysis += `\n\n🔄 *Актуальные цены:*\n`;
+        priceChanges.slice(0, 5).forEach(c => {
+            const sign = c.change > 0 ? '+' : '';
+            analysis += `  • ${c.symbol}: $${c.price.toFixed(2)} (${sign}${c.change.toFixed(2)}%)\n`;
+        });
+
+        analysis += `\n🔗 *Подробнее на сайте:* ${window.location.href}`;
+
+        return analysis;
+    } catch (error) {
+        console.error('Ошибка генерации анализа:', error);
+        return null;
+    }
+}
+
+// Функция отправки анализа в Telegram
+async function sendAnalysisToTelegram(analysis) {
+    if (!analysis) return;
+
+    const BOT_TOKEN = '8422981212:AAFqUt5juqdC_l64q7FACOBw-mFL4f0hN8Y';
+    const CHAT_ID = '-1004345602790';
+
+    try {
+        const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: CHAT_ID,
+                text: analysis,
+                parse_mode: 'Markdown',
+                disable_web_page_preview: true,
+                disable_notification: false
+            })
+        });
+
+        const result = await response.json();
+        if (result.ok) {
+            console.log('✅ Анализ отправлен в канал');
+        } else {
+            console.error('❌ Ошибка отправки анализа:', result.description);
+        }
+    } catch (error) {
+        console.error('❌ Ошибка отправки анализа:', error);
+    }
+}
+
+// Функция проверки и отправки анализа
+async function checkAndSendAnalysis() {
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const dateKey = now.toISOString().split('T')[0];
+
+    // Утренний анализ (9:00-9:05)
+    if (hours === 9 && minutes < 5) {
+        const key = `morning_${dateKey}`;
+        if (LS.get(key)) return;
+        LS.set(key, true);
+        
+        console.log('📊 Генерируем утренний анализ...');
+        const analysis = await generateCryptoAnalysis();
+        await sendAnalysisToTelegram(analysis);
+    }
+
+    // Вечерний анализ (21:00-21:05)
+    if (hours === 21 && minutes < 5) {
+        const key = `evening_${dateKey}`;
+        if (LS.get(key)) return;
+        LS.set(key, true);
+        
+        console.log('📊 Генерируем вечерний анализ...');
+        const analysis = await generateCryptoAnalysis();
+        await sendAnalysisToTelegram(analysis);
+    }
+}
+
 // ===== МОБИЛЬНОЕ МЕНЮ =====
 document.addEventListener('DOMContentLoaded', function() {
     const menuBtn = document.getElementById('mobileMenuBtn');
@@ -665,6 +869,13 @@ loadCrypto();
 loadNews();
 loadExclusivePosts();
 
+// Запускаем анализ при загрузке
+setTimeout(checkAndSendAnalysis, 5000);
+
+// Проверяем каждую минуту
+setInterval(checkAndSendAnalysis, 60000);
+
+// Обновление контента раз в час
 setInterval(() => {
     loadCrypto();
     loadNews();
