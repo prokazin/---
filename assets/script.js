@@ -5,6 +5,19 @@ const LS = {
     set: (key, val) => localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(val)),
 };
 
+// ===== TELEGRAM MINI APP =====
+let tgApp = null;
+try {
+    if (window.Telegram && window.Telegram.WebApp) {
+        tgApp = window.Telegram.WebApp;
+        tgApp.ready();
+        document.body.classList.add('tg-app');
+        console.log('✅ Telegram Mini App инициализирован');
+    }
+} catch (e) {
+    console.log('ℹ️ Не Telegram окружение');
+}
+
 // ===== КОНФИГ ИСТОЧНИКОВ НОВОСТЕЙ =====
 const NEWS_SOURCES = [
     {
@@ -16,7 +29,8 @@ const NEWS_SOURCES = [
                 title: item.title,
                 url: item.link,
                 source: { title: 'CoinDesk' },
-                published_at: item.pubDate || new Date().toISOString()
+                published_at: item.pubDate || new Date().toISOString(),
+                thumbnail: item.thumbnail || null
             }));
         },
         limit: 3
@@ -30,7 +44,8 @@ const NEWS_SOURCES = [
                 title: item.title,
                 url: item.link,
                 source: { title: 'Cointelegraph' },
-                published_at: item.pubDate || new Date().toISOString()
+                published_at: item.pubDate || new Date().toISOString(),
+                thumbnail: item.thumbnail || null
             }));
         },
         limit: 3
@@ -44,7 +59,8 @@ const NEWS_SOURCES = [
                 title: child.data.title,
                 url: 'https://reddit.com' + child.data.permalink,
                 source: { title: 'Reddit r/CryptoCurrency' },
-                published_at: new Date(child.data.created_utc * 1000).toISOString()
+                published_at: new Date(child.data.created_utc * 1000).toISOString(),
+                thumbnail: child.data.thumbnail && child.data.thumbnail.startsWith('http') ? child.data.thumbnail : null
             }));
         },
         limit: 4
@@ -58,22 +74,32 @@ const NEWS_SOURCES = [
                 title: child.data.title,
                 url: 'https://reddit.com' + child.data.permalink,
                 source: { title: 'Reddit r/Bitcoin' },
-                published_at: new Date(child.data.created_utc * 1000).toISOString()
+                published_at: new Date(child.data.created_utc * 1000).toISOString(),
+                thumbnail: child.data.thumbnail && child.data.thumbnail.startsWith('http') ? child.data.thumbnail : null
             }));
         },
         limit: 4
     }
 ];
 
+// ===== ЭКСКЛЮЗИВНЫЕ КЛЮЧЕВЫЕ СЛОВА (ФИЛЬТР) =====
+const EXCLUSIVE_KEYWORDS = [
+    'эксклюзив', 'инсайд', 'аналитика', 'прогноз', 'отчет', 
+    'анализ', 'тенденция', 'рынок', 'инвестиции', 'стратегия',
+    'exclusive', 'insight', 'analysis', 'forecast', 'report',
+    'trend', 'market', 'investment', 'strategy'
+];
+
 // ===== ПЕРЕМЕННЫЕ ДЛЯ УВЕДОМЛЕНИЙ =====
 let lastNewsTitles = [];
 let notificationEnabled = false;
+let pendingNotification = null;
 
 // ===== 1. ЗАГРУЗКА КРИПТОВАЛЮТ =====
 async function loadCrypto() {
     const container = document.getElementById('cryptoContainer');
     container.innerHTML = Array(12).fill(0).map(() => 
-        '<div class="skeleton" style="height:120px;border-radius:12px;"></div>'
+        '<div class="skeleton" style="height:clamp(100px, 12vw, 130px);border-radius:12px;"></div>'
     ).join('');
 
     try {
@@ -92,7 +118,7 @@ async function loadCrypto() {
             card.className = 'crypto-card';
             card.innerHTML = `
                 <div class="name">
-                    <img src="${coin.image}" alt="${coin.name}" loading="lazy" />
+                    <img src="${coin.image}" alt="${coin.name}" loading="lazy" width="28" height="28" />
                     ${coin.name}
                     <span class="symbol">${coin.symbol.toUpperCase()}</span>
                 </div>
@@ -112,11 +138,25 @@ async function loadCrypto() {
     }
 }
 
-// ===== 2. ЗАГРУЗКА НОВОСТЕЙ =====
+// ===== 2. ОПТИМИЗАЦИЯ КАРТИНОК =====
+function optimizeImageUrl(url) {
+    if (!url) return null;
+    // Конвертируем в WebP если поддерживается
+    if (url.includes('reddit.com') && url.includes('?format=')) {
+        return url.replace('?format=png', '?format=webp');
+    }
+    // Уменьшаем размер для мобильных
+    if (url.includes('media') || url.includes('cdn')) {
+        return url;
+    }
+    return url;
+}
+
+// ===== 3. ЗАГРУЗКА НОВОСТЕЙ =====
 async function loadNews() {
     const container = document.getElementById('newsContainer');
     container.innerHTML = Array(6).fill(0).map(() => 
-        '<div class="skeleton" style="height:140px;border-radius:12px;"></div>'
+        '<div class="skeleton" style="height:clamp(120px, 15vw, 160px);border-radius:12px;"></div>'
     ).join('');
 
     let allNews = [];
@@ -124,7 +164,6 @@ async function loadNews() {
 
     for (const source of NEWS_SOURCES) {
         try {
-            console.log(`📡 Загружаем новости из: ${source.name}`);
             const response = await fetch(source.url);
             
             if (!response.ok) {
@@ -139,7 +178,8 @@ async function loadNews() {
                 const limited = articles.slice(0, source.limit);
                 allNews = allNews.concat(limited.map(item => ({
                     ...item,
-                    sourceName: source.name
+                    sourceName: source.name,
+                    thumbnail: optimizeImageUrl(item.thumbnail)
                 })));
                 console.log(`✅ ${source.name}: загружено ${limited.length} новостей`);
             }
@@ -179,15 +219,28 @@ async function loadNews() {
 
         const card = document.createElement('div');
         card.className = 'news-card';
+        
+        // Формируем HTML с оптимизированной картинкой
+        let thumbnailHtml = '';
+        if (item.thumbnail && item.thumbnail.startsWith('http')) {
+            thumbnailHtml = `
+                <div style="margin-bottom:8px;overflow:hidden;border-radius:6px;background:var(--bg-primary);">
+                    <img src="${item.thumbnail}" alt="" loading="lazy" 
+                         style="width:100%;height:auto;max-height:160px;object-fit:cover;display:block;" />
+                </div>
+            `;
+        }
+        
         card.innerHTML = `
             <div class="news-source">
                 <i class="fas fa-globe"></i> 
                 ${item.source?.title || item.sourceName || 'Unknown'}
-                <span style="margin-left:auto;color:var(--text-secondary);font-size:11px;">
+                <span style="margin-left:auto;color:var(--text-secondary);font-size:clamp(9px,0.8vw,11px);">
                     ${item.published_at ? new Date(item.published_at).toLocaleDateString('ru-RU') : 'Сегодня'}
                 </span>
                 <span class="source-badge">${item.sourceName || ''}</span>
             </div>
+            ${thumbnailHtml}
             <h3><a href="${item.url}" target="_blank" rel="noopener">${titleRu}</a></h3>
         `;
         container.appendChild(card);
@@ -197,7 +250,7 @@ async function loadNews() {
     sendToTelegram(displayNews.slice(0, 3));
 }
 
-// ===== 3. ПРОВЕРКА НОВЫХ НОВОСТЕЙ ДЛЯ УВЕДОМЛЕНИЙ =====
+// ===== 4. ПРОВЕРКА НОВЫХ НОВОСТЕЙ =====
 function checkNewNews(newTitles) {
     if (lastNewsTitles.length === 0) {
         lastNewsTitles = newTitles;
@@ -207,13 +260,14 @@ function checkNewNews(newTitles) {
     const newItems = newTitles.filter(title => !lastNewsTitles.includes(title));
     
     if (newItems.length > 0 && notificationEnabled) {
-        showNotification('📰', `Новая новость: ${newItems[0].substring(0, 60)}...`);
+        const message = `📰 Новая новость: ${newItems[0].substring(0, 60)}...`;
+        showNotification('📰', message);
         
-        // Отправляем Push-уведомление
+        // Push-уведомление
         if ('Notification' in window && Notification.permission === 'granted') {
             new Notification('CoinDigest — Новая новость!', {
                 body: newItems[0].substring(0, 100) + '...',
-                icon: 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/svgs/solid/coins.svg'
+                icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🪙</text></svg>'
             });
         }
     }
@@ -221,7 +275,7 @@ function checkNewNews(newTitles) {
     lastNewsTitles = newTitles;
 }
 
-// ===== 4. УВЕДОМЛЕНИЕ НА САЙТЕ =====
+// ===== 5. УВЕДОМЛЕНИЯ =====
 function showNotification(icon, text) {
     const banner = document.getElementById('notificationBanner');
     if (!banner) {
@@ -238,7 +292,8 @@ function showNotification(icon, text) {
     
     banner.classList.add('show');
     
-    setTimeout(() => {
+    clearTimeout(pendingNotification);
+    pendingNotification = setTimeout(() => {
         banner.classList.remove('show');
     }, 8000);
 }
@@ -259,13 +314,15 @@ function createNotificationBanner() {
     document.body.appendChild(banner);
 }
 
-// ===== 5. ЗАПРОС РАЗРЕШЕНИЯ НА УВЕДОМЛЕНИЯ =====
+// ===== 6. ЗАПРОС РАЗРЕШЕНИЯ НА УВЕДОМЛЕНИЯ =====
 function requestNotificationPermission() {
     if ('Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission().then(permission => {
             if (permission === 'granted') {
                 notificationEnabled = true;
-                showNotification('🔔', 'Уведомления включены! Вы будете получать оповещения о новых новостях.');
+                showNotification('🔔', '✅ Уведомления включены! Вы будете получать оповещения о новых новостях.');
+            } else {
+                notificationEnabled = false;
             }
         });
     } else if ('Notification' in window && Notification.permission === 'granted') {
@@ -273,9 +330,8 @@ function requestNotificationPermission() {
     }
 }
 
-// ===== 6. TELEGRAM БОТ (С ВАШИМИ ДАННЫМИ!) =====
+// ===== 7. TELEGRAM БОТ =====
 async function sendToTelegram(newsItems) {
-    // 🔑 ВАШИ ДАННЫЕ (уже вставлены!)
     const BOT_TOKEN = '8422981212:AAFqUt5juqdC_l64q7FACOBw-mFL4f0hN8Y';
     const CHAT_ID = '8380652624';
 
@@ -288,7 +344,7 @@ async function sendToTelegram(newsItems) {
             message += `   📌 ${item.source?.title || item.sourceName || 'Unknown'}\n\n`;
         });
         message += `\n🔄 Обновлено: ${new Date().toLocaleString('ru-RU')}`;
-        message += `\n🔗 Читать все новости: https://ваш-сайт.github.io/`;
+        message += `\n🔗 Открыть сайт: ${window.location.href}`;
 
         const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
         const response = await fetch(url, {
@@ -314,18 +370,29 @@ async function sendToTelegram(newsItems) {
     }
 }
 
-// ===== 7. ЭКСКЛЮЗИВНЫЕ МАТЕРИАЛЫ (АВТОМАТИЧЕСКИЙ СБОР) =====
+// ===== 8. ЭКСКЛЮЗИВНЫЕ МАТЕРИАЛЫ =====
 async function loadExclusivePosts() {
     const container = document.getElementById('postsContainer');
     
     try {
+        // Загружаем из JSON
         const response = await fetch('data/posts.json');
         let posts = await response.json();
         
-        if (posts.length < 3) {
-            const autoPosts = await fetchAutoPosts();
-            posts = posts.concat(autoPosts);
+        // Добавляем автоматически собранные эксклюзивные материалы
+        const autoExclusive = await fetchExclusiveContent();
+        posts = posts.concat(autoExclusive);
+        
+        // Убираем дубликаты
+        const uniquePosts = [];
+        const seenTitles = new Set();
+        for (const post of posts) {
+            if (!seenTitles.has(post.title)) {
+                seenTitles.add(post.title);
+                uniquePosts.push(post);
+            }
         }
+        posts = uniquePosts.slice(0, 9);
         
         container.innerHTML = '';
 
@@ -341,43 +408,69 @@ async function loadExclusivePosts() {
                 <h3>${post.url ? `<a href="${post.url}" target="_blank">${post.title}</a>` : post.title}</h3>
                 <div class="date">${post.date}</div>
                 <p>${post.content ? post.content.substring(0, 120) + (post.content.length > 120 ? '...' : '') : ''}</p>
+                ${post.isExclusive ? '<span style="display:inline-block;background:var(--accent);color:var(--bg-primary);font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;margin-top:6px;">⭐ ЭКСКЛЮЗИВ</span>' : ''}
             `;
             container.appendChild(card);
         });
     } catch (error) {
         console.error('Ошибка загрузки постов:', error);
-        const autoPosts = await fetchAutoPosts();
+        const autoPosts = await fetchExclusiveContent();
         if (autoPosts.length > 0) {
             renderAutoPosts(autoPosts);
         }
     }
 }
 
-// ===== 8. АВТОМАТИЧЕСКИЙ СБОР МАТЕРИАЛОВ =====
-async function fetchAutoPosts() {
+// ===== 9. АВТОМАТИЧЕСКИЙ СБОР ЭКСКЛЮЗИВНЫХ МАТЕРИАЛОВ =====
+async function fetchExclusiveContent() {
     try {
         const sources = [
             'https://api.rss2json.com/v1/api.json?rss_url=https://cointelegraph.com/feed',
-            'https://api.rss2json.com/v1/api.json?rss_url=https://www.coindesk.com/feed'
+            'https://api.rss2json.com/v1/api.json?rss_url=https://www.coindesk.com/feed',
+            'https://api.rss2json.com/v1/api.json?rss_url=https://cryptopotato.com/feed',
+            'https://api.rss2json.com/v1/api.json?rss_url=https://www.crypto-news.net/feed'
         ];
         
-        let posts = [];
+        let exclusivePosts = [];
+        const maxPosts = 6;
+        
         for (const url of sources) {
-            const response = await fetch(url);
-            const data = await response.json();
-            if (data && data.items) {
-                const items = data.items.slice(0, 2).map(item => ({
-                    title: item.title,
-                    url: item.link,
-                    content: item.description || 'Аналитический обзор крипторынка',
-                    date: item.pubDate ? new Date(item.pubDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
-                }));
-                posts = posts.concat(items);
+            if (exclusivePosts.length >= maxPosts) break;
+            
+            try {
+                const response = await fetch(url);
+                if (!response.ok) continue;
+                
+                const data = await response.json();
+                if (!data || !data.items) continue;
+                
+                // Проверяем каждую статью на наличие эксклюзивных ключевых слов
+                for (const item of data.items) {
+                    if (exclusivePosts.length >= maxPosts) break;
+                    
+                    const text = (item.title + ' ' + (item.description || '')).toLowerCase();
+                    const isExclusive = EXCLUSIVE_KEYWORDS.some(keyword => 
+                        text.includes(keyword.toLowerCase())
+                    );
+                    
+                    if (isExclusive) {
+                        exclusivePosts.push({
+                            title: item.title,
+                            url: item.link,
+                            content: item.description || 'Эксклюзивный аналитический материал',
+                            date: item.pubDate ? new Date(item.pubDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                            isExclusive: true
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn('Ошибка парсинга источника:', e);
             }
         }
-        return posts;
+        
+        return exclusivePosts;
     } catch (error) {
-        console.error('Ошибка автоматического сбора:', error);
+        console.error('Ошибка автоматического сбора эксклюзивов:', error);
         return [];
     }
 }
@@ -391,13 +484,14 @@ function renderAutoPosts(posts) {
         card.innerHTML = `
             <h3><a href="${post.url}" target="_blank">${post.title}</a></h3>
             <div class="date">${post.date}</div>
-            <p>${post.content ? post.content.substring(0, 120) + (post.content.length > 120 ? '...' : '') : 'Аналитический обзор'}</p>
+            <p>${post.content ? post.content.substring(0, 120) + (post.content.length > 120 ? '...' : '') : 'Эксклюзивный материал'}</p>
+            ${post.isExclusive ? '<span style="display:inline-block;background:var(--accent);color:var(--bg-primary);font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;margin-top:6px;">⭐ ЭКСКЛЮЗИВ</span>' : ''}
         `;
         container.appendChild(card);
     });
 }
 
-// ===== 9. ПЕРЕМЕШИВАНИЕ =====
+// ===== 10. ПЕРЕМЕШИВАНИЕ =====
 function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -406,7 +500,7 @@ function shuffleArray(array) {
     return array;
 }
 
-// ===== 10. МОБИЛЬНОЕ МЕНЮ =====
+// ===== 11. МОБИЛЬНОЕ МЕНЮ =====
 document.addEventListener('DOMContentLoaded', function() {
     const menuBtn = document.getElementById('mobileMenuBtn');
     const mobileMenu = document.getElementById('mobileMenu');
@@ -432,10 +526,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    setTimeout(requestNotificationPermission, 3000);
+    // Автоматический запрос уведомлений через 2 секунды
+    setTimeout(requestNotificationPermission, 2000);
 });
 
-// ===== 11. ЗАПУСК =====
+// ===== 12. ЗАПУСК =====
 loadCrypto();
 loadNews();
 loadExclusivePosts();
@@ -443,4 +538,5 @@ loadExclusivePosts();
 setInterval(() => {
     loadCrypto();
     loadNews();
+    loadExclusivePosts();
 }, 3600000);
