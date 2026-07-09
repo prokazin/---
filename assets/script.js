@@ -193,7 +193,7 @@ async function loadNews() {
         container.appendChild(card);
     }
 
-    // Отправляем в Telegram
+    // Отправляем в Telegram (3 новости)
     sendToTelegram(displayNews.slice(0, 3));
 }
 
@@ -225,7 +225,6 @@ function checkNewNews(newTitles) {
 function showNotification(icon, text) {
     const banner = document.getElementById('notificationBanner');
     if (!banner) {
-        // Создаём баннер, если его нет
         createNotificationBanner();
         setTimeout(() => showNotification(icon, text), 100);
         return;
@@ -274,25 +273,22 @@ function requestNotificationPermission() {
     }
 }
 
-// ===== 6. TELEGRAM БОТ =====
+// ===== 6. TELEGRAM БОТ (С ВАШИМИ ДАННЫМИ!) =====
 async function sendToTelegram(newsItems) {
-    // Настройки бота (ЗАМЕНИТЕ НА СВОИ)
-    const BOT_TOKEN = 'YOUR_BOT_TOKEN'; // Получить у @BotFather
-    const CHAT_ID = 'YOUR_CHAT_ID'; // Ваш Telegram ID
-
-    if (BOT_TOKEN === 'YOUR_BOT_TOKEN' || CHAT_ID === 'YOUR_CHAT_ID') {
-        console.log('ℹ️ Telegram бот не настроен. Укажите BOT_TOKEN и CHAT_ID в script.js');
-        return;
-    }
+    // 🔑 ВАШИ ДАННЫЕ (уже вставлены!)
+    const BOT_TOKEN = '8422981212:AAFqUt5juqdC_l64q7FACOBw-mFL4f0hN8Y';
+    const CHAT_ID = '8380652624';
 
     try {
         let message = '📰 *CoinDigest — Свежие новости*\n\n';
         newsItems.forEach((item, index) => {
             const title = item.title || 'Новость';
-            message += `${index + 1}. [${title}](${item.url})\n`;
+            const url = item.url || '#';
+            message += `${index + 1}. [${title}](${url})\n`;
             message += `   📌 ${item.source?.title || item.sourceName || 'Unknown'}\n\n`;
         });
         message += `\n🔄 Обновлено: ${new Date().toLocaleString('ru-RU')}`;
+        message += `\n🔗 Читать все новости: https://ваш-сайт.github.io/`;
 
         const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
         const response = await fetch(url, {
@@ -302,17 +298,19 @@ async function sendToTelegram(newsItems) {
                 chat_id: CHAT_ID,
                 text: message,
                 parse_mode: 'Markdown',
-                disable_web_page_preview: true
+                disable_web_page_preview: true,
+                disable_notification: false
             })
         });
 
-        if (response.ok) {
+        const result = await response.json();
+        if (result.ok) {
             console.log('✅ Новости отправлены в Telegram');
         } else {
-            console.error('❌ Ошибка отправки в Telegram:', await response.text());
+            console.error('❌ Ошибка Telegram:', result.description);
         }
     } catch (error) {
-        console.error('❌ Ошибка Telegram:', error);
+        console.error('❌ Ошибка отправки в Telegram:', error);
     }
 }
 
@@ -321,11 +319,9 @@ async function loadExclusivePosts() {
     const container = document.getElementById('postsContainer');
     
     try {
-        // Пытаемся загрузить из JSON
         const response = await fetch('data/posts.json');
         let posts = await response.json();
         
-        // Если постов мало, добавляем автоматически собранные
         if (posts.length < 3) {
             const autoPosts = await fetchAutoPosts();
             posts = posts.concat(autoPosts);
@@ -350,7 +346,6 @@ async function loadExclusivePosts() {
         });
     } catch (error) {
         console.error('Ошибка загрузки постов:', error);
-        // Пробуем загрузить автоматически
         const autoPosts = await fetchAutoPosts();
         if (autoPosts.length > 0) {
             renderAutoPosts(autoPosts);
@@ -361,7 +356,6 @@ async function loadExclusivePosts() {
 // ===== 8. АВТОМАТИЧЕСКИЙ СБОР МАТЕРИАЛОВ =====
 async function fetchAutoPosts() {
     try {
-        // Собираем статьи из RSS (аналитика)
         const sources = [
             'https://api.rss2json.com/v1/api.json?rss_url=https://cointelegraph.com/feed',
             'https://api.rss2json.com/v1/api.json?rss_url=https://www.coindesk.com/feed'
@@ -438,7 +432,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Запрашиваем разрешение на уведомления при загрузке
     setTimeout(requestNotificationPermission, 3000);
 });
 
@@ -447,7 +440,6 @@ loadCrypto();
 loadNews();
 loadExclusivePosts();
 
-// Автообновление раз в час
 setInterval(() => {
     loadCrypto();
     loadNews();
