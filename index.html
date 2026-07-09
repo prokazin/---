@@ -21,9 +21,8 @@
             </div>
             <nav class="nav-menu">
                 <a href="#" class="active"><i class="fas fa-home"></i> <span>Главная</span></a>
-                <a href="#"><i class="fas fa-chart-line"></i> <span>Рынок</span></a>
-                <a href="#"><i class="fas fa-newspaper"></i> <span>Новости</span></a>
-                <a href="#"><i class="fas fa-wallet"></i> <span>Портфель</span></a>
+                <a href="#cryptoSection"><i class="fas fa-chart-line"></i> <span>Рынок</span></a>
+                <a href="#newsSection"><i class="fas fa-newspaper"></i> <span>Новости</span></a>
             </nav>
             <div class="header-right">
                 <div class="last-update">
@@ -37,12 +36,11 @@
         </div>
     </header>
 
-    <!-- МОБИЛЬНОЕ МЕНЮ (скрытое) -->
+    <!-- МОБИЛЬНОЕ МЕНЮ -->
     <div class="mobile-menu" id="mobileMenu">
         <a href="#" class="active"><i class="fas fa-home"></i> Главная</a>
-        <a href="#"><i class="fas fa-chart-line"></i> Рынок</a>
-        <a href="#"><i class="fas fa-newspaper"></i> Новости</a>
-        <a href="#"><i class="fas fa-wallet"></i> Портфель</a>
+        <a href="#cryptoSection"><i class="fas fa-chart-line"></i> Рынок</a>
+        <a href="#newsSection"><i class="fas fa-newspaper"></i> Новости</a>
     </div>
 
     <!-- БАННЕР -->
@@ -54,14 +52,14 @@
                 <div class="banner-stats">
                     <span><i class="fas fa-coins"></i> 12+ монет</span>
                     <span><i class="fas fa-newspaper"></i> Свежие новости</span>
-                    <span><i class="fas fa-chart-line"></i> Реальное время</span>
+                    <span><i class="fas fa-bell"></i> Уведомления</span>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- КАРТОЧКИ КРИПТОВАЛЮТ -->
-    <section class="crypto-grid">
+    <section class="crypto-grid" id="cryptoSection">
         <div class="container">
             <div class="section-header">
                 <h2><i class="fas fa-rocket"></i> Топ криптовалют</h2>
@@ -74,7 +72,7 @@
     </section>
 
     <!-- НОВОСТИ -->
-    <section class="news-section">
+    <section class="news-section" id="newsSection">
         <div class="container">
             <div class="section-header">
                 <h2><i class="fas fa-newspaper"></i> Свежие новости</h2>
@@ -86,15 +84,15 @@
         </div>
     </section>
 
-    <!-- БЛОГ (ПОСТЫ) -->
+    <!-- ЭКСКЛЮЗИВНЫЕ МАТЕРИАЛЫ (автоматически из открытых источников) -->
     <section class="blog-section">
         <div class="container">
             <div class="section-header">
-                <h2><i class="fas fa-pen-fancy"></i> Аналитика и обзоры</h2>
-                <span class="section-subtitle">Эксклюзивные материалы</span>
+                <h2><i class="fas fa-pen-fancy"></i> Эксклюзивные материалы</h2>
+                <span class="section-subtitle">Автоматический сбор</span>
             </div>
             <div id="postsContainer" class="posts-container">
-                <!-- Посты из data/posts.json -->
+                <!-- Посты из data/posts.json + автоматический сбор -->
             </div>
         </div>
     </section>
@@ -113,9 +111,8 @@
                 <div class="footer-links">
                     <h4>Разделы</h4>
                     <a href="#">Главная</a>
-                    <a href="#">Рынок</a>
-                    <a href="#">Новости</a>
-                    <a href="#">Портфель</a>
+                    <a href="#cryptoSection">Рынок</a>
+                    <a href="#newsSection">Новости</a>
                 </div>
                 <div class="footer-links">
                     <h4>Информация</h4>
