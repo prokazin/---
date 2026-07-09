@@ -5,8 +5,8 @@ const LS = {
     set: (key, val) => localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(val)),
 };
 
-// ===== ПАРОЛЬ (ИЗМЕНИТЕ НА СВОЙ) =====
-const ADMIN_PASSWORD = 'MyStrongPass2026!';
+// ===== ПАРОЛЬ (НОВЫЙ) =====
+const ADMIN_PASSWORD = 'crypto2026';
 
 // ===== СОСТОЯНИЕ =====
 let isAuthenticated = false;
@@ -71,42 +71,85 @@ function logout() {
     }
 }
 
-// ===== ОСНОВНОЙ ИНТЕРФЕЙС =====
+// ===== ОСНОВНОЙ ИНТЕРФЕЙС (ТОЛЬКО АНАЛИТИКА + РЕКЛАМА) =====
 function renderAdmin() {
     const app = document.getElementById('adminApp');
     app.innerHTML = `
         <h1>
-            <span><i class="fas fa-user-cog"></i> Админ-панель</span>
+            <span><i class="fas fa-chart-pie"></i> Админ-панель</span>
             <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Выйти</button>
         </h1>
 
+        <!-- СТАТИСТИКА -->
         <div class="stat-grid">
             <div class="stat-card">
                 <div class="number" id="visits">0</div>
                 <div class="label">👁️ Посещений</div>
+                <div class="sub">За всё время</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="todayVisits">0</div>
+                <div class="label">📊 Сегодня</div>
+                <div class="sub">За текущий день</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="weekVisits">0</div>
+                <div class="label">📈 За неделю</div>
+                <div class="sub">Последние 7 дней</div>
             </div>
             <div class="stat-card">
                 <div class="number" id="postsCount">0</div>
                 <div class="label">📝 Всего постов</div>
+                <div class="sub">Эксклюзивные материалы</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="exclusiveCount">0</div>
+                <div class="label">⭐ Эксклюзивов</div>
+                <div class="sub">Автоматический сбор</div>
             </div>
             <div class="stat-card">
                 <div class="number" id="lastUpdate">-</div>
                 <div class="label">⏱️ Последний пост</div>
+                <div class="sub">Дата публикации</div>
             </div>
         </div>
 
-        <h2 style="font-size:18px;margin-bottom:12px;color:#eaecef;">
-            <i class="fas fa-plus-circle" style="color:#f0b90b;"></i> Добавить пост
-        </h2>
-        <form class="admin-form" id="postForm">
-            <input type="text" id="postTitle" placeholder="Заголовок поста" required />
-            <textarea id="postContent" rows="4" placeholder="Текст поста" required></textarea>
-            <button type="submit"><i class="fas fa-paper-plane"></i> Опубликовать</button>
+        <!-- РЕКЛАМА -->
+        <div class="section-title"><i class="fas fa-ad"></i> Управление рекламой</div>
+        <p style="color:#848e9c;font-size:13px;margin-bottom:12px;">
+            Добавляйте баннеры, GIF, видео или ссылки. Реклама будет показываться на сайте с ротацией каждые 30 секунд.
+        </p>
+        
+        <form class="admin-form" id="adForm">
+            <div class="form-row">
+                <div>
+                    <label style="color:#848e9c;font-size:13px;">Тип рекламы</label>
+                    <select id="adType">
+                        <option value="image">Изображение</option>
+                        <option value="gif">GIF</option>
+                        <option value="video">Видео</option>
+                        <option value="link">Ссылка</option>
+                        <option value="html">HTML код</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="color:#848e9c;font-size:13px;">Название (для админки)</label>
+                    <input type="text" id="adName" placeholder="Моя реклама" />
+                </div>
+            </div>
+            <div id="adFields">
+                <label style="color:#848e9c;font-size:13px;">URL файла (изображение, GIF, видео)</label>
+                <input type="text" id="adUrl" placeholder="https://example.com/image.jpg" />
+                <label style="color:#848e9c;font-size:13px;">Ссылка для перехода (опционально)</label>
+                <input type="text" id="adLink" placeholder="https://example.com" />
+                <label style="color:#848e9c;font-size:13px;">Текст (для ссылки или HTML)</label>
+                <textarea id="adText" placeholder="Текст рекламы или HTML код"></textarea>
+            </div>
+            <button type="submit"><i class="fas fa-plus"></i> Добавить рекламу</button>
         </form>
 
-        <div class="post-list">
-            <h2><i class="fas fa-list" style="color:#f0b90b;"></i> Все посты</h2>
-            <div id="postsContainerAdmin"></div>
+        <div class="ad-list" id="adList">
+            <div style="color:#848e9c;text-align:center;padding:10px 0;">Загрузка рекламы...</div>
         </div>
 
         <a href="../index.html" class="back-link"><i class="fas fa-arrow-left"></i> На главную</a>
@@ -114,31 +157,178 @@ function renderAdmin() {
 
     initAdminFunctions();
     updateStats();
-    loadPosts();
+    loadAds();
 }
 
 // ===== ИНИЦИАЛИЗАЦИЯ ФОРМ =====
 function initAdminFunctions() {
-    const form = document.getElementById('postForm');
+    const form = document.getElementById('adForm');
     if (form) {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
-            const title = document.getElementById('postTitle').value.trim();
-            const content = document.getElementById('postContent').value.trim();
-            if (title && content) {
-                addPost(title, content);
-                this.reset();
-                document.getElementById('postTitle').focus();
-                showToast('✅ Пост опубликован!');
-            } else {
-                showToast('⚠️ Заполните все поля.', 'error');
-            }
+            addAd();
+        });
+    }
+
+    // Смена типа рекламы
+    const typeSelect = document.getElementById('adType');
+    if (typeSelect) {
+        typeSelect.addEventListener('change', function() {
+            updateAdFields(this.value);
         });
     }
 }
 
+function updateAdFields(type) {
+    const urlField = document.getElementById('adUrl');
+    const linkField = document.getElementById('adLink');
+    const textField = document.getElementById('adText');
+    
+    if (!urlField || !linkField || !textField) return;
+    
+    // Показываем/скрываем поля в зависимости от типа
+    const urlLabel = urlField.previousElementSibling;
+    const linkLabel = linkField.previousElementSibling;
+    const textLabel = textField.previousElementSibling;
+    
+    if (type === 'link') {
+        urlField.style.display = 'none';
+        urlLabel.style.display = 'none';
+        linkField.style.display = 'block';
+        linkLabel.style.display = 'block';
+        textField.style.display = 'block';
+        textLabel.style.display = 'block';
+        linkField.placeholder = 'https://example.com (обязательно)';
+        textField.placeholder = 'Текст ссылки';
+    } else if (type === 'html') {
+        urlField.style.display = 'none';
+        urlLabel.style.display = 'none';
+        linkField.style.display = 'none';
+        linkLabel.style.display = 'none';
+        textField.style.display = 'block';
+        textLabel.style.display = 'block';
+        textField.placeholder = 'HTML код рекламы';
+        textField.style.minHeight = '100px';
+    } else {
+        urlField.style.display = 'block';
+        urlLabel.style.display = 'block';
+        linkField.style.display = 'block';
+        linkLabel.style.display = 'block';
+        textField.style.display = 'block';
+        textLabel.style.display = 'block';
+        urlField.placeholder = 'https://example.com/image.jpg';
+        linkField.placeholder = 'https://example.com (опционально)';
+        textField.placeholder = 'Текст (опционально)';
+        textField.style.minHeight = '80px';
+    }
+}
+
+// ===== ДОБАВЛЕНИЕ РЕКЛАМЫ =====
+function addAd() {
+    const type = document.getElementById('adType').value;
+    const name = document.getElementById('adName').value.trim() || 'Без названия';
+    const url = document.getElementById('adUrl').value.trim();
+    const link = document.getElementById('adLink').value.trim();
+    const text = document.getElementById('adText').value.trim();
+
+    if (type === 'link' && !link) {
+        showToast('⚠️ Для ссылки укажите URL перехода', 'error');
+        return;
+    }
+
+    if ((type === 'image' || type === 'gif' || type === 'video') && !url) {
+        showToast('⚠️ Укажите URL файла', 'error');
+        return;
+    }
+
+    if (type === 'html' && !text) {
+        showToast('⚠️ Введите HTML код', 'error');
+        return;
+    }
+
+    const ads = LS.get('ads') || [];
+    const newAd = {
+        id: Date.now(),
+        type: type,
+        name: name,
+        url: url,
+        link: link,
+        text: text,
+        created: new Date().toISOString()
+    };
+
+    ads.push(newAd);
+    LS.set('ads', ads);
+    
+    document.getElementById('adForm').reset();
+    loadAds();
+    showToast('✅ Реклама добавлена!');
+}
+
+// ===== ЗАГРУЗКА РЕКЛАМЫ =====
+function loadAds() {
+    const container = document.getElementById('adList');
+    const ads = LS.get('ads') || [];
+
+    if (ads.length === 0) {
+        container.innerHTML = '<div class="empty-msg">📭 Реклама не добавлена</div>';
+        return;
+    }
+
+    container.innerHTML = '';
+    ads.forEach((ad, index) => {
+        const div = document.createElement('div');
+        div.className = 'ad-item';
+        div.innerHTML = `
+            <div class="ad-info">
+                <strong>${ad.name}</strong>
+                <small>Тип: ${ad.type} | ${ad.created ? new Date(ad.created).toLocaleDateString() : ''}</small>
+                ${ad.url ? `<div style="font-size:11px;color:#848e9c;word-break:break-all;">${ad.url}</div>` : ''}
+                ${ad.link ? `<div style="font-size:11px;color:#848e9c;word-break:break-all;">🔗 ${ad.link}</div>` : ''}
+            </div>
+            <div class="ad-actions">
+                <button class="edit-btn" onclick="editAd(${index})"><i class="fas fa-edit"></i> Просмотр</button>
+                <button onclick="deleteAd(${index})"><i class="fas fa-trash"></i> Удалить</button>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+// ===== УДАЛЕНИЕ РЕКЛАМЫ =====
+function deleteAd(index) {
+    if (!confirm('Удалить эту рекламу?')) return;
+    
+    let ads = LS.get('ads') || [];
+    ads.splice(index, 1);
+    LS.set('ads', ads);
+    loadAds();
+    showToast('🗑️ Реклама удалена');
+}
+
+// ===== ПРОСМОТР РЕКЛАМЫ =====
+function editAd(index) {
+    const ads = LS.get('ads') || [];
+    const ad = ads[index];
+    if (!ad) return;
+
+    let preview = '';
+    if (ad.type === 'image' || ad.type === 'gif') {
+        preview = `<img src="${ad.url}" alt="${ad.name}" />`;
+    } else if (ad.type === 'video') {
+        preview = `<video controls autoplay muted loop><source src="${ad.url}" type="video/mp4"></video>`;
+    } else if (ad.type === 'link') {
+        preview = `<a href="${ad.link}" target="_blank" style="color:#f0b90b;">${ad.text || ad.link}</a>`;
+    } else if (ad.type === 'html') {
+        preview = ad.text;
+    }
+
+    showToast(`📺 ${ad.name}`, 'preview', preview);
+}
+
 // ===== СТАТИСТИКА =====
 function updateStats() {
+    // Посещения
     let visits = LS.get('visits') || 0;
     if (!sessionStorage.getItem('coindigest_visited')) {
         visits++;
@@ -146,109 +336,52 @@ function updateStats() {
         sessionStorage.setItem('coindigest_visited', 'true');
     }
     
-    const visitsEl = document.getElementById('visits');
-    if (visitsEl) visitsEl.textContent = visits;
+    document.getElementById('visits').textContent = visits;
 
+    // Сегодня
+    const today = new Date().toISOString().split('T')[0];
+    const todayVisits = LS.get('todayVisits') || 0;
+    document.getElementById('todayVisits').textContent = todayVisits;
+
+    // Неделя
+    const weekVisits = LS.get('weekVisits') || 0;
+    document.getElementById('weekVisits').textContent = weekVisits;
+
+    // Посты
     const posts = LS.get('posts') || [];
-    const postsCountEl = document.getElementById('postsCount');
-    if (postsCountEl) postsCountEl.textContent = posts.length;
+    document.getElementById('postsCount').textContent = posts.length;
 
+    // Эксклюзивы
+    const exclusive = posts.filter(p => p.isExclusive);
+    document.getElementById('exclusiveCount').textContent = exclusive.length;
+
+    // Последний пост
     const lastUpdateEl = document.getElementById('lastUpdate');
     if (lastUpdateEl) {
         lastUpdateEl.textContent = posts.length > 0 ? posts[posts.length - 1].date : '-';
     }
 }
 
-// ===== ЗАГРУЗКА ПОСТОВ =====
-function loadPosts() {
-    const posts = LS.get('posts') || [];
-    const container = document.getElementById('postsContainerAdmin');
-    if (!container) return;
-    
-    container.innerHTML = '';
-
-    if (posts.length === 0) {
-        container.innerHTML = '<p style="color:#848e9c;text-align:center;padding:20px 0;">Постов пока нет. Добавьте первый!</p>';
-        return;
-    }
-
-    posts.slice().reverse().forEach((post, index) => {
-        const div = document.createElement('div');
-        div.className = 'post-item';
-        div.innerHTML = `
-            <div class="post-content">
-                <strong>${escapeHtml(post.title)}</strong>
-                <small>${post.date}</small>
-                <p>${escapeHtml(post.content.substring(0, 100))}${post.content.length > 100 ? '...' : ''}</p>
-            </div>
-            <button class="delete-btn" data-index="${index}"><i class="fas fa-trash"></i> Удалить</button>
-        `;
-        container.appendChild(div);
-    });
-
-    document.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const realIndex = posts.length - 1 - parseInt(this.dataset.index);
-            if (confirm('Удалить этот пост?')) {
-                deletePost(realIndex);
-            }
-        });
-    });
-}
-
-// ===== ДОБАВЛЕНИЕ ПОСТА =====
-function addPost(title, content) {
-    const posts = LS.get('posts') || [];
-    const newPost = {
-        id: Date.now(),
-        title: title.trim(),
-        content: content.trim(),
-        date: new Date().toISOString().split('T')[0]
-    };
-    posts.push(newPost);
-    LS.set('posts', posts);
-    syncToJSON(posts);
-    loadPosts();
-    updateStats();
-}
-
-// ===== УДАЛЕНИЕ ПОСТА =====
-function deletePost(index) {
-    let posts = LS.get('posts') || [];
-    if (index >= 0 && index < posts.length) {
-        posts.splice(index, 1);
-        LS.set('posts', posts);
-        syncToJSON(posts);
-        loadPosts();
-        updateStats();
-        showToast('🗑️ Пост удалён');
-    }
-}
-
-// ===== СИНХРОНИЗАЦИЯ С JSON =====
-async function syncToJSON(posts) {
-    try {
-        console.log('✅ Посты синхронизированы с localStorage');
-    } catch (e) {
-        console.error('Ошибка синхронизации:', e);
-    }
-}
-
 // ===== ТОСТ-УВЕДОМЛЕНИЕ =====
-function showToast(message, type = 'success') {
+function showToast(message, type = 'success', extra = '') {
     const existing = document.querySelector('.toast-notification');
     if (existing) existing.remove();
 
     const toast = document.createElement('div');
     toast.className = 'toast-notification';
+    
+    let bg = '#0ecb81';
+    if (type === 'error') bg = '#f6465d';
+    if (type === 'preview') bg = '#1e2329';
+    
     toast.style.cssText = `
         position: fixed;
         bottom: 30px;
         left: 50%;
         transform: translateX(-50%);
-        background: ${type === 'error' ? '#f6465d' : '#0ecb81'};
-        color: #fff;
-        padding: 12px 24px;
+        background: ${bg};
+        color: ${type === 'preview' ? '#eaecef' : '#fff'};
+        padding: ${type === 'preview' ? '16px 24px' : '12px 24px'};
         border-radius: 8px;
         font-weight: 500;
         font-size: 14px;
@@ -257,23 +390,34 @@ function showToast(message, type = 'success') {
         animation: fadeInUp 0.3s ease;
         max-width: 90%;
         text-align: center;
+        border: ${type === 'preview' ? '1px solid #f0b90b' : 'none'};
+        min-width: ${type === 'preview' ? '300px' : 'auto'};
     `;
-    toast.textContent = message;
+    
+    let content = message;
+    if (type === 'preview' && extra) {
+        content = `<strong style="color:#f0b90b;">${message}</strong><div style="margin-top:10px;">${extra}</div>`;
+    }
+    toast.innerHTML = content;
     document.body.appendChild(toast);
 
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(-50%) translateY(20px)';
-        toast.style.transition = 'opacity 0.3s, transform 0.3s';
-        setTimeout(() => toast.remove(), 300);
-    }, 2500);
-}
-
-// ===== ESCAPE HTML =====
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    if (type !== 'preview') {
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(-50%) translateY(20px)';
+            toast.style.transition = 'opacity 0.3s, transform 0.3s';
+            setTimeout(() => toast.remove(), 300);
+        }, 2500);
+    } else {
+        // Для превью закрываем по клику
+        toast.style.cursor = 'pointer';
+        toast.onclick = function() {
+            this.style.opacity = '0';
+            this.style.transform = 'translateX(-50%) translateY(20px)';
+            this.style.transition = 'opacity 0.3s, transform 0.3s';
+            setTimeout(() => this.remove(), 300);
+        };
+    }
 }
 
 // ===== ЗАПУСК =====
@@ -281,9 +425,27 @@ if (!LS.get('visits')) {
     LS.set('visits', 0);
 }
 
+// Инициализация дневной/недельной статистики
+const todayKey = new Date().toISOString().split('T')[0];
+const todayStats = LS.get('todayStats') || {};
+if (todayStats.date !== todayKey) {
+    LS.set('todayStats', { date: todayKey, count: 0 });
+}
+const weekKey = getWeekKey();
+const weekStats = LS.get('weekStats') || {};
+if (weekStats.week !== weekKey) {
+    LS.set('weekStats', { week: weekKey, count: 0 });
+}
+
+function getWeekKey() {
+    const now = new Date();
+    const start = new Date(now);
+    start.setDate(now.getDate() - now.getDay());
+    return start.toISOString().split('T')[0];
+}
+
 checkAuth();
 
-// Добавляем стили для toast
 const styleToast = document.createElement('style');
 styleToast.textContent = `
     @keyframes fadeInUp {
