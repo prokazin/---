@@ -2,7 +2,7 @@ name: Обновление данных CoinDigest
 
 on:
   schedule:
-    - cron: '0 */1 * * *'   # Каждый час
+    - cron: '0 */1 * * *'
   workflow_dispatch:
 
 jobs:
@@ -21,7 +21,7 @@ jobs:
         run: |
           echo "✅ Данные обновлены $(date '+%Y-%m-%d %H:%M:%S')"
 
-      - name: 📤 Коммитим и пушим изменения
+      - name: 📤 Коммитим и пушим
         run: |
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
