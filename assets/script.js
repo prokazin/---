@@ -5,29 +5,62 @@ const LS = {
     set: (key, val) => localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(val)),
 };
 
-// ===== КОНФИГ ИСТОЧНИКОВ НОВОСТЕЙ =====
+// ===== КОНФИГ ИСТОЧНИКОВ НОВОСТЕЙ (БЕЗ API КЛЮЧЕЙ) =====
 const NEWS_SOURCES = [
     {
-        name: 'CryptoPanic',
-        url: 'https://cryptopanic.com/api/v1/posts/?auth_token=YOUR_API_KEY&public=true&filter=hot',
-        parser: (data) => data.results || [],
+        name: 'CoinDesk (RSS)',
+        url: 'https://api.rss2json.com/v1/api.json?rss_url=https://www.coindesk.com/feed',
+        parser: (data) => {
+            if (!data || !data.items) return [];
+            return data.items.map(item => ({
+                title: item.title,
+                url: item.link,
+                source: { title: 'CoinDesk' },
+                published_at: item.pubDate || new Date().toISOString()
+            }));
+        },
+        limit: 3
+    },
+    {
+        name: 'Cointelegraph (RSS)',
+        url: 'https://api.rss2json.com/v1/api.json?rss_url=https://cointelegraph.com/feed',
+        parser: (data) => {
+            if (!data || !data.items) return [];
+            return data.items.map(item => ({
+                title: item.title,
+                url: item.link,
+                source: { title: 'Cointelegraph' },
+                published_at: item.pubDate || new Date().toISOString()
+            }));
+        },
+        limit: 3
+    },
+    {
+        name: 'Reddit CryptoCurrency',
+        url: 'https://www.reddit.com/r/CryptoCurrency/.json?limit=6',
+        parser: (data) => {
+            if (!data || !data.data || !data.data.children) return [];
+            return data.data.children.map(child => ({
+                title: child.data.title,
+                url: 'https://reddit.com' + child.data.permalink,
+                source: { title: 'Reddit r/CryptoCurrency' },
+                published_at: new Date(child.data.created_utc * 1000).toISOString()
+            }));
+        },
         limit: 4
     },
     {
-        name: 'NewsAPI',
-        url: 'https://newsapi.org/v2/everything?q=cryptocurrency&language=en&pageSize=4&apiKey=YOUR_NEWSAPI_KEY',
-        parser: (data) => data.articles || [],
-        limit: 4
-    },
-    {
-        name: 'Reddit',
-        url: 'https://www.reddit.com/r/CryptoCurrency/.json?limit=4',
-        parser: (data) => data.data.children.map(child => ({
-            title: child.data.title,
-            url: 'https://reddit.com' + child.data.permalink,
-            source: { title: 'Reddit' },
-            published_at: new Date(child.data.created_utc * 1000).toISOString()
-        })),
+        name: 'Reddit Bitcoin',
+        url: 'https://www.reddit.com/r/Bitcoin/.json?limit=6',
+        parser: (data) => {
+            if (!data || !data.data || !data.data.children) return [];
+            return data.data.children.map(child => ({
+                title: child.data.title,
+                url: 'https://reddit.com' + child.data.permalink,
+                source: { title: 'Reddit r/Bitcoin' },
+                published_at: new Date(child.data.created_utc * 1000).toISOString()
+            }));
+        },
         limit: 4
     }
 ];
@@ -75,7 +108,7 @@ async function loadCrypto() {
     }
 }
 
-// ===== 2. ЗАГРУЗКА НОВОСТЕЙ =====
+// ===== 2. ЗАГРУЗКА НОВОСТЕЙ (БЕЗ КЛЮЧЕЙ) =====
 async function loadNews() {
     const container = document.getElementById('newsContainer');
     container.innerHTML = Array(6).fill(0).map(() => 
@@ -86,6 +119,7 @@ async function loadNews() {
 
     for (const source of NEWS_SOURCES) {
         try {
+            console.log(`📡 Загружаем новости из: ${source.name}`);
             const response = await fetch(source.url);
             
             if (!response.ok) {
@@ -110,7 +144,7 @@ async function loadNews() {
     }
 
     if (allNews.length === 0) {
-        container.innerHTML = '<p style="color:var(--red);grid-column:1/-1;text-align:center;">⚠️ Не удалось загрузить новости</p>';
+        container.innerHTML = '<p style="color:var(--red);grid-column:1/-1;text-align:center;">⚠️ Не удалось загрузить новости из всех источников</p>';
         return;
     }
 
@@ -121,6 +155,7 @@ async function loadNews() {
     for (const item of displayNews) {
         let titleRu = item.title || 'Новость';
         try {
+            // Проверяем, не на русском ли уже
             if (!/[а-яА-Я]/.test(titleRu)) {
                 const translateRes = await fetch(
                     `https://api.mymemory.translated.net/get?q=${encodeURIComponent(titleRu)}&langpair=en|ru`
@@ -141,12 +176,11 @@ async function loadNews() {
                 <i class="fas fa-globe"></i> 
                 ${item.source?.title || item.sourceName || 'Unknown'}
                 <span style="margin-left:auto;color:var(--text-secondary);font-size:11px;">
-                    ${item.published_at ? new Date(item.published_at).toLocaleDateString() : 'Сегодня'}
+                    ${item.published_at ? new Date(item.published_at).toLocaleDateString('ru-RU') : 'Сегодня'}
                 </span>
                 <span class="source-badge">${item.sourceName || ''}</span>
             </div>
             <h3><a href="${item.url}" target="_blank" rel="noopener">${titleRu}</a></h3>
-            ${item.currencies ? `<div class="news-tags">${item.currencies.map(c => c.code).join(', ')}</div>` : ''}
         `;
         container.appendChild(card);
     }
@@ -157,7 +191,7 @@ async function loadNews() {
     container.appendChild(info);
 }
 
-// ===== 3. ПЕРЕМЕШИВАНИЕ =====
+// ===== 3. ПЕРЕМЕШИВАНИЕ МАССИВА =====
 function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
