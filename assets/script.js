@@ -82,7 +82,7 @@ const NEWS_SOURCES = [
     }
 ];
 
-// ===== ЭКСКЛЮЗИВНЫЕ КЛЮЧЕВЫЕ СЛОВА (ФИЛЬТР) =====
+// ===== ЭКСКЛЮЗИВНЫЕ КЛЮЧЕВЫЕ СЛОВА =====
 const EXCLUSIVE_KEYWORDS = [
     'эксклюзив', 'инсайд', 'аналитика', 'прогноз', 'отчет', 
     'анализ', 'тенденция', 'рынок', 'инвестиции', 'стратегия',
@@ -94,6 +94,10 @@ const EXCLUSIVE_KEYWORDS = [
 let lastNewsTitles = [];
 let notificationEnabled = false;
 let pendingNotification = null;
+
+// ===== ПЕРЕМЕННЫЕ ДЛЯ РЕКЛАМЫ =====
+let adInterval = null;
+let currentAdIndex = 0;
 
 // ===== 1. ЗАГРУЗКА КРИПТОВАЛЮТ =====
 async function loadCrypto() {
@@ -141,13 +145,8 @@ async function loadCrypto() {
 // ===== 2. ОПТИМИЗАЦИЯ КАРТИНОК =====
 function optimizeImageUrl(url) {
     if (!url) return null;
-    // Конвертируем в WebP если поддерживается
     if (url.includes('reddit.com') && url.includes('?format=')) {
         return url.replace('?format=png', '?format=webp');
-    }
-    // Уменьшаем размер для мобильных
-    if (url.includes('media') || url.includes('cdn')) {
-        return url;
     }
     return url;
 }
@@ -196,7 +195,6 @@ async function loadNews() {
     allNews = shuffleArray(allNews);
     const displayNews = allNews.slice(0, 6);
 
-    // Проверяем новые новости для уведомлений
     newTitles = displayNews.map(item => item.title);
     checkNewNews(newTitles);
 
@@ -220,7 +218,6 @@ async function loadNews() {
         const card = document.createElement('div');
         card.className = 'news-card';
         
-        // Формируем HTML с оптимизированной картинкой
         let thumbnailHtml = '';
         if (item.thumbnail && item.thumbnail.startsWith('http')) {
             thumbnailHtml = `
@@ -246,7 +243,6 @@ async function loadNews() {
         container.appendChild(card);
     }
 
-    // Отправляем в Telegram (3 новости)
     sendToTelegram(displayNews.slice(0, 3));
 }
 
@@ -263,7 +259,6 @@ function checkNewNews(newTitles) {
         const message = `📰 Новая новость: ${newItems[0].substring(0, 60)}...`;
         showNotification('📰', message);
         
-        // Push-уведомление
         if ('Notification' in window && Notification.permission === 'granted') {
             new Notification('CoinDigest — Новая новость!', {
                 body: newItems[0].substring(0, 100) + '...',
@@ -320,7 +315,7 @@ function requestNotificationPermission() {
         Notification.requestPermission().then(permission => {
             if (permission === 'granted') {
                 notificationEnabled = true;
-                showNotification('🔔', '✅ Уведомления включены! Вы будете получать оповещения о новых новостях.');
+                showNotification('🔔', '✅ Уведомления включены!');
             } else {
                 notificationEnabled = false;
             }
@@ -370,20 +365,65 @@ async function sendToTelegram(newsItems) {
     }
 }
 
-// ===== 8. ЭКСКЛЮЗИВНЫЕ МАТЕРИАЛЫ =====
+// ===== 8. РЕКЛАМА =====
+function loadAd() {
+    const container = document.getElementById('adContainer');
+    const ads = LS.get('ads') || [];
+    
+    if (!ads || ads.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    // Показываем текущее объявление
+    showAd(ads, currentAdIndex);
+    
+    // Запускаем ротацию
+    if (adInterval) clearInterval(adInterval);
+    adInterval = setInterval(() => {
+        currentAdIndex = (currentAdIndex + 1) % ads.length;
+        showAd(ads, currentAdIndex);
+    }, 30000); // Меняем каждые 30 секунд
+}
+
+function showAd(ads, index) {
+    const container = document.getElementById('adContainer');
+    const ad = ads[index];
+    if (!ad) return;
+
+    let html = '<div class="ad-content">';
+    
+    // Тип рекламы
+    if (ad.type === 'image' && ad.url) {
+        html += `<img src="${ad.url}" alt="Реклама" loading="lazy" />`;
+    } else if (ad.type === 'gif' && ad.url) {
+        html += `<img src="${ad.url}" alt="Реклама GIF" loading="lazy" style="max-height:200px;" />`;
+    } else if (ad.type === 'video' && ad.url) {
+        html += `<video controls autoplay muted loop style="max-height:200px;border-radius:8px;">
+                    <source src="${ad.url}" type="video/mp4">
+                    Ваш браузер не поддерживает видео
+                </video>`;
+    } else if (ad.type === 'link' && ad.url) {
+        html += `<a href="${ad.link}" target="_blank" rel="noopener">${ad.text || 'Перейти по ссылке'}</a>`;
+    } else if (ad.type === 'html' && ad.code) {
+        html += ad.code;
+    }
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+// ===== 9. ЭКСКЛЮЗИВНЫЕ МАТЕРИАЛЫ =====
 async function loadExclusivePosts() {
     const container = document.getElementById('postsContainer');
     
     try {
-        // Загружаем из JSON
         const response = await fetch('data/posts.json');
         let posts = await response.json();
         
-        // Добавляем автоматически собранные эксклюзивные материалы
         const autoExclusive = await fetchExclusiveContent();
         posts = posts.concat(autoExclusive);
         
-        // Убираем дубликаты
         const uniquePosts = [];
         const seenTitles = new Set();
         for (const post of posts) {
@@ -421,7 +461,7 @@ async function loadExclusivePosts() {
     }
 }
 
-// ===== 9. АВТОМАТИЧЕСКИЙ СБОР ЭКСКЛЮЗИВНЫХ МАТЕРИАЛОВ =====
+// ===== 10. АВТОМАТИЧЕСКИЙ СБОР ЭКСКЛЮЗИВОВ =====
 async function fetchExclusiveContent() {
     try {
         const sources = [
@@ -444,7 +484,6 @@ async function fetchExclusiveContent() {
                 const data = await response.json();
                 if (!data || !data.items) continue;
                 
-                // Проверяем каждую статью на наличие эксклюзивных ключевых слов
                 for (const item of data.items) {
                     if (exclusivePosts.length >= maxPosts) break;
                     
@@ -491,7 +530,7 @@ function renderAutoPosts(posts) {
     });
 }
 
-// ===== 10. ПЕРЕМЕШИВАНИЕ =====
+// ===== 11. ПЕРЕМЕШИВАНИЕ =====
 function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -500,7 +539,7 @@ function shuffleArray(array) {
     return array;
 }
 
-// ===== 11. МОБИЛЬНОЕ МЕНЮ =====
+// ===== 12. МОБИЛЬНОЕ МЕНЮ =====
 document.addEventListener('DOMContentLoaded', function() {
     const menuBtn = document.getElementById('mobileMenuBtn');
     const mobileMenu = document.getElementById('mobileMenu');
@@ -526,11 +565,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Автоматический запрос уведомлений через 2 секунды
     setTimeout(requestNotificationPermission, 2000);
+    
+    // Загружаем рекламу
+    loadAd();
 });
 
-// ===== 12. ЗАПУСК =====
+// ===== 13. ЗАПУСК =====
 loadCrypto();
 loadNews();
 loadExclusivePosts();
