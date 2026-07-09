@@ -24,9 +24,10 @@
                 <span>CoinDigest</span>
             </div>
             <nav class="nav-menu">
-                <a href="#" class="active"><i class="fas fa-home"></i> <span>Главная</span></a>
-                <a href="#cryptoSection"><i class="fas fa-chart-line"></i> <span>Рынок</span></a>
-                <a href="#newsSection"><i class="fas fa-newspaper"></i> <span>Новости</span></a>
+                <a href="#" class="active" data-tab="main"><i class="fas fa-home"></i> <span>Главная</span></a>
+                <a href="#cryptoSection" data-tab="crypto"><i class="fas fa-chart-line"></i> <span>Рынок</span></a>
+                <a href="#newsSection" data-tab="news"><i class="fas fa-newspaper"></i> <span>Новости</span></a>
+                <a href="#altcoinSection" data-tab="altcoins"><i class="fas fa-coins"></i> <span>Альткоины</span></a>
             </nav>
             <div class="header-right">
                 <div class="last-update">
@@ -42,12 +43,13 @@
 
     <!-- МОБИЛЬНОЕ МЕНЮ -->
     <div class="mobile-menu" id="mobileMenu">
-        <a href="#" class="active"><i class="fas fa-home"></i> Главная</a>
-        <a href="#cryptoSection"><i class="fas fa-chart-line"></i> Рынок</a>
-        <a href="#newsSection"><i class="fas fa-newspaper"></i> Новости</a>
+        <a href="#" class="active" data-tab="main"><i class="fas fa-home"></i> Главная</a>
+        <a href="#cryptoSection" data-tab="crypto"><i class="fas fa-chart-line"></i> Рынок</a>
+        <a href="#newsSection" data-tab="news"><i class="fas fa-newspaper"></i> Новости</a>
+        <a href="#altcoinSection" data-tab="altcoins"><i class="fas fa-coins"></i> Альткоины</a>
     </div>
 
-    <!-- БАННЕР (УПРОЩЁН) -->
+    <!-- БАННЕР -->
     <section class="banner">
         <div class="container">
             <div class="banner-content">
@@ -57,7 +59,7 @@
         </div>
     </section>
 
-    <!-- РЕКЛАМНЫЙ БЛОК (ПОКАЗЫВАЕТСЯ АВТОМАТИЧЕСКИ) -->
+    <!-- РЕКЛАМА -->
     <section class="ad-section" id="adSection">
         <div class="container">
             <div id="adContainer" class="ad-container">
@@ -79,7 +81,7 @@
         </div>
     </section>
 
-    <!-- НОВОСТИ -->
+    <!-- НОВОСТИ (ОСНОВНЫЕ) -->
     <section class="news-section" id="newsSection">
         <div class="container">
             <div class="section-header">
@@ -87,6 +89,19 @@
             </div>
             <div id="newsContainer" class="news-container">
                 <!-- Новости из API -->
+            </div>
+        </div>
+    </section>
+
+    <!-- НОВОСТИ АЛЬТКОИНОВ (НОВАЯ СЕКЦИЯ) -->
+    <section class="news-section altcoin-section" id="altcoinSection" style="display:none;">
+        <div class="container">
+            <div class="section-header">
+                <h2><i class="fas fa-coins"></i> Новости альткоинов</h2>
+                <span class="section-subtitle">XRP, DOGE, SOL, ADA, PEPE и другие</span>
+            </div>
+            <div id="altcoinContainer" class="news-container">
+                <!-- Новости альткоинов подгружаются через JS -->
             </div>
         </div>
     </section>
@@ -104,7 +119,7 @@
         </div>
     </section>
 
-    <!-- ПОДВАЛ (УПРОЩЁН) -->
+    <!-- ПОДВАЛ -->
     <footer class="footer">
         <div class="container">
             <div class="footer-grid">
@@ -120,6 +135,7 @@
                     <a href="#">Главная</a>
                     <a href="#cryptoSection">Рынок</a>
                     <a href="#newsSection">Новости</a>
+                    <a href="#altcoinSection">Альткоины</a>
                 </div>
             </div>
             <div class="footer-bottom">
