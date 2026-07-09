@@ -47,17 +47,21 @@
         <a href="#newsSection"><i class="fas fa-newspaper"></i> Новости</a>
     </div>
 
-    <!-- БАННЕР -->
+    <!-- БАННЕР (УПРОЩЁН) -->
     <section class="banner">
         <div class="container">
             <div class="banner-content">
                 <h1>Актуальные новости <span>крипторынка</span></h1>
                 <p>Цены, аналитика и тренды — в одном месте</p>
-                <div class="banner-stats">
-                    <span><i class="fas fa-coins"></i> 12+ монет</span>
-                    <span><i class="fas fa-newspaper"></i> Свежие новости</span>
-                    <span><i class="fas fa-bell"></i> Уведомления</span>
-                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- РЕКЛАМНЫЙ БЛОК (ПОКАЗЫВАЕТСЯ АВТОМАТИЧЕСКИ) -->
+    <section class="ad-section" id="adSection">
+        <div class="container">
+            <div id="adContainer" class="ad-container">
+                <!-- Реклама подгружается через JS -->
             </div>
         </div>
     </section>
@@ -80,7 +84,6 @@
         <div class="container">
             <div class="section-header">
                 <h2><i class="fas fa-newspaper"></i> Свежие новости</h2>
-                <span class="section-subtitle">Из разных источников</span>
             </div>
             <div id="newsContainer" class="news-container">
                 <!-- Новости из API -->
@@ -101,7 +104,7 @@
         </div>
     </section>
 
-    <!-- ПОДВАЛ (Упрощённый) -->
+    <!-- ПОДВАЛ (УПРОЩЁН) -->
     <footer class="footer">
         <div class="container">
             <div class="footer-grid">
@@ -117,12 +120,6 @@
                     <a href="#">Главная</a>
                     <a href="#cryptoSection">Рынок</a>
                     <a href="#newsSection">Новости</a>
-                </div>
-                <div class="footer-links">
-                    <h4>Информация</h4>
-                    <a href="#">О проекте</a>
-                    <a href="#">Контакты</a>
-                    <a href="#">Политика</a>
                 </div>
             </div>
             <div class="footer-bottom">
