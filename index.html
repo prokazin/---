@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <meta name="description" content="Актуальные новости криптовалют, цены и аналитика" />
+    <title>CoinDigest — Крипто-Финанс Дайджест</title>
+    <link rel="stylesheet" href="assets/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body>
+    <!-- ШАПКА -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <i class="fas fa-coins"></i>
+                <span>CoinDigest</span>
+            </div>
+            <nav class="nav-menu">
+                <a href="#" class="active"><i class="fas fa-home"></i> <span>Главная</span></a>
+                <a href="#"><i class="fas fa-chart-line"></i> <span>Рынок</span></a>
+                <a href="#"><i class="fas fa-newspaper"></i> <span>Новости</span></a>
+                <a href="#"><i class="fas fa-wallet"></i> <span>Портфель</span></a>
+            </nav>
+            <div class="header-right">
+                <div class="last-update">
+                    <i class="fas fa-sync-alt fa-spin"></i>
+                    <span id="updateTime">Обновление: ...</span>
+                </div>
+                <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Меню">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- МОБИЛЬНОЕ МЕНЮ (скрытое) -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="#" class="active"><i class="fas fa-home"></i> Главная</a>
+        <a href="#"><i class="fas fa-chart-line"></i> Рынок</a>
+        <a href="#"><i class="fas fa-newspaper"></i> Новости</a>
+        <a href="#"><i class="fas fa-wallet"></i> Портфель</a>
+    </div>
+
+    <!-- БАННЕР -->
+    <section class="banner">
+        <div class="container">
+            <div class="banner-content">
+                <h1>Актуальные новости <span>крипторынка</span></h1>
+                <p>Цены, аналитика и тренды — в одном месте</p>
+                <div class="banner-stats">
+                    <span><i class="fas fa-coins"></i> 12+ монет</span>
+                    <span><i class="fas fa-newspaper"></i> Свежие новости</span>
+                    <span><i class="fas fa-chart-line"></i> Реальное время</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- КАРТОЧКИ КРИПТОВАЛЮТ -->
+    <section class="crypto-grid">
+        <div class="container">
+            <div class="section-header">
+                <h2><i class="fas fa-rocket"></i> Топ криптовалют</h2>
+                <span class="section-subtitle">Цены в реальном времени</span>
+            </div>
+            <div id="cryptoContainer" class="crypto-container">
+                <!-- Данные подгружаются через JS -->
+            </div>
+        </div>
+    </section>
+
+    <!-- НОВОСТИ -->
+    <section class="news-section">
+        <div class="container">
+            <div class="section-header">
+                <h2><i class="fas fa-newspaper"></i> Свежие новости</h2>
+                <span class="section-subtitle">Из разных источников</span>
+            </div>
+            <div id="newsContainer" class="news-container">
+                <!-- Новости из API -->
+            </div>
+        </div>
+    </section>
+
+    <!-- БЛОГ (ПОСТЫ) -->
+    <section class="blog-section">
+        <div class="container">
+            <div class="section-header">
+                <h2><i class="fas fa-pen-fancy"></i> Аналитика и обзоры</h2>
+                <span class="section-subtitle">Эксклюзивные материалы</span>
+            </div>
+            <div id="postsContainer" class="posts-container">
+                <!-- Посты из data/posts.json -->
+            </div>
+        </div>
+    </section>
+
+    <!-- ПОДВАЛ -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <div class="logo">
+                        <i class="fas fa-coins"></i>
+                        <span>CoinDigest</span>
+                    </div>
+                    <p>Ваш источник актуальной информации о криптовалютах</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Разделы</h4>
+                    <a href="#">Главная</a>
+                    <a href="#">Рынок</a>
+                    <a href="#">Новости</a>
+                    <a href="#">Портфель</a>
+                </div>
+                <div class="footer-links">
+                    <h4>Информация</h4>
+                    <a href="#">О проекте</a>
+                    <a href="#">Контакты</a>
+                    <a href="#">Политика</a>
+                </div>
+                <div class="footer-social">
+                    <h4>Мы в соцсетях</h4>
+                    <div class="social-icons">
+                        <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                        <a href="#" aria-label="Telegram"><i class="fab fa-telegram"></i></a>
+                        <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+                        <a href="#" aria-label="GitHub"><i class="fab fa-github"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 CoinDigest. Все права защищены.</p>
+                <p class="footer-update">Данные обновляются каждые 60 минут</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="assets/script.js"></script>
+</body>
+</html>
