@@ -7,12 +7,10 @@ const LS = {
 
 // ===== СБОР СТАТИСТИКИ =====
 function trackVisit() {
-    // Общие посещения
     let visits = LS.get('visits') || 0;
     visits++;
     LS.set('visits', visits);
 
-    // Посещения за сегодня
     const todayKey = new Date().toISOString().split('T')[0];
     let todayStats = LS.get('todayStats') || {};
     if (todayStats.date !== todayKey) {
@@ -21,7 +19,6 @@ function trackVisit() {
     todayStats.count++;
     LS.set('todayStats', todayStats);
 
-    // Посещения за неделю
     const weekKey = getWeekKey();
     let weekStats = LS.get('weekStats') || {};
     if (weekStats.week !== weekKey) {
@@ -51,7 +48,7 @@ try {
     console.log('ℹ️ Не Telegram окружение');
 }
 
-// ===== КОНФИГ ИСТОЧНИКОВ НОВОСТЕЙ =====
+// ===== НОВЫЕ ИСТОЧНИКИ НОВОСТЕЙ (6 шт) =====
 const NEWS_SOURCES = [
     {
         name: 'CoinDesk (RSS)',
@@ -84,6 +81,36 @@ const NEWS_SOURCES = [
         limit: 3
     },
     {
+        name: 'CryptoPotato (RSS)',
+        url: 'https://api.rss2json.com/v1/api.json?rss_url=https://cryptopotato.com/feed',
+        parser: (data) => {
+            if (!data || !data.items) return [];
+            return data.items.map(item => ({
+                title: item.title,
+                url: item.link,
+                source: { title: 'CryptoPotato' },
+                published_at: item.pubDate || new Date().toISOString(),
+                thumbnail: item.thumbnail || null
+            }));
+        },
+        limit: 2
+    },
+    {
+        name: 'Bitcoin.com (RSS)',
+        url: 'https://api.rss2json.com/v1/api.json?rss_url=https://news.bitcoin.com/feed',
+        parser: (data) => {
+            if (!data || !data.items) return [];
+            return data.items.map(item => ({
+                title: item.title,
+                url: item.link,
+                source: { title: 'Bitcoin.com' },
+                published_at: item.pubDate || new Date().toISOString(),
+                thumbnail: item.thumbnail || null
+            }));
+        },
+        limit: 2
+    },
+    {
         name: 'Reddit CryptoCurrency',
         url: 'https://www.reddit.com/r/CryptoCurrency/.json?limit=6',
         parser: (data) => {
@@ -96,7 +123,7 @@ const NEWS_SOURCES = [
                 thumbnail: child.data.thumbnail && child.data.thumbnail.startsWith('http') ? child.data.thumbnail : null
             }));
         },
-        limit: 4
+        limit: 3
     },
     {
         name: 'Reddit Bitcoin',
@@ -111,7 +138,7 @@ const NEWS_SOURCES = [
                 thumbnail: child.data.thumbnail && child.data.thumbnail.startsWith('http') ? child.data.thumbnail : null
             }));
         },
-        limit: 4
+        limit: 3
     }
 ];
 
@@ -130,7 +157,10 @@ let pendingNotification = null;
 let adInterval = null;
 let currentAdIndex = 0;
 
-// ===== 1. ЗАГРУЗКА КРИПТОВАЛЮТ =====
+// Хранилище для уже отправленных в Telegram заголовков
+let sentTitles = [];
+
+// ===== ЗАГРУЗКА КРИПТОВАЛЮТ =====
 async function loadCrypto() {
     const container = document.getElementById('cryptoContainer');
     container.innerHTML = Array(12).fill(0).map(() => 
@@ -173,7 +203,7 @@ async function loadCrypto() {
     }
 }
 
-// ===== 2. ОПТИМИЗАЦИЯ КАРТИНОК =====
+// ===== ОПТИМИЗАЦИЯ КАРТИНОК =====
 function optimizeImageUrl(url) {
     if (!url) return null;
     if (url.includes('reddit.com') && url.includes('?format=')) {
@@ -182,7 +212,26 @@ function optimizeImageUrl(url) {
     return url;
 }
 
-// ===== 3. ЗАГРУЗКА НОВОСТЕЙ =====
+// ===== ПЕРЕВОД ТЕКСТА НА РУССКИЙ =====
+async function translateToRussian(text) {
+    if (!text) return 'Новость';
+    if (/[а-яА-Я]/.test(text)) return text;
+    
+    try {
+        const response = await fetch(
+            `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|ru`
+        );
+        const data = await response.json();
+        if (data.responseData && data.responseData.translatedText) {
+            return data.responseData.translatedText;
+        }
+    } catch (e) {
+        console.warn('Ошибка перевода:', e);
+    }
+    return text;
+}
+
+// ===== ЗАГРУЗКА НОВОСТЕЙ =====
 async function loadNews() {
     const container = document.getElementById('newsContainer');
     container.innerHTML = Array(6).fill(0).map(() => 
@@ -231,21 +280,8 @@ async function loadNews() {
 
     container.innerHTML = '';
     for (const item of displayNews) {
-        let titleRu = item.title || 'Новость';
-        try {
-            if (!/[а-яА-Я]/.test(titleRu)) {
-                const translateRes = await fetch(
-                    `https://api.mymemory.translated.net/get?q=${encodeURIComponent(titleRu)}&langpair=en|ru`
-                );
-                const translateData = await translateRes.json();
-                if (translateData.responseData && translateData.responseData.translatedText) {
-                    titleRu = translateData.responseData.translatedText;
-                }
-            }
-        } catch (e) {
-            console.warn('Ошибка перевода:', e);
-        }
-
+        const titleRu = await translateToRussian(item.title);
+        
         const card = document.createElement('div');
         card.className = 'news-card';
         
@@ -274,10 +310,11 @@ async function loadNews() {
         container.appendChild(card);
     }
 
-    sendToTelegram(displayNews.slice(0, 3));
+    // Отправляем в Telegram ТОЛЬКО новые новости (с проверкой)
+    await sendNewNewsToTelegram(displayNews);
 }
 
-// ===== 4. ПРОВЕРКА НОВЫХ НОВОСТЕЙ =====
+// ===== ПРОВЕРКА НОВЫХ НОВОСТЕЙ (для уведомлений) =====
 function checkNewNews(newTitles) {
     if (lastNewsTitles.length === 0) {
         lastNewsTitles = newTitles;
@@ -301,7 +338,7 @@ function checkNewNews(newTitles) {
     lastNewsTitles = newTitles;
 }
 
-// ===== 5. УВЕДОМЛЕНИЯ =====
+// ===== УВЕДОМЛЕНИЯ =====
 function showNotification(icon, text) {
     const banner = document.getElementById('notificationBanner');
     if (!banner) {
@@ -340,7 +377,7 @@ function createNotificationBanner() {
     document.body.appendChild(banner);
 }
 
-// ===== 6. ЗАПРОС РАЗРЕШЕНИЯ НА УВЕДОМЛЕНИЯ =====
+// ===== ЗАПРОС РАЗРЕШЕНИЯ НА УВЕДОМЛЕНИЯ =====
 function requestNotificationPermission() {
     if ('Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission().then(permission => {
@@ -356,19 +393,44 @@ function requestNotificationPermission() {
     }
 }
 
-// ===== 7. TELEGRAM БОТ (ОТПРАВКА В КАНАЛ) =====
-async function sendToTelegram(newsItems) {
+// ===== ОТПРАВКА ТОЛЬКО НОВЫХ НОВОСТЕЙ В TELEGRAM =====
+async function sendNewNewsToTelegram(newsItems) {
     const BOT_TOKEN = '8422981212:AAFqUt5juqdC_l64q7FACOBw-mFL4f0hN8Y';
-    const CHAT_ID = '-1004345602790'; // ID вашего канала
+    const CHAT_ID = '-1004345602790';
+
+    // Загружаем уже отправленные заголовки из localStorage
+    let sentTitles = LS.get('sentTitles') || [];
+    
+    // Фильтруем новости, которых ещё не было
+    const newItems = newsItems.filter(item => {
+        const title = item.title || 'Новость';
+        return !sentTitles.includes(title);
+    });
+
+    if (newItems.length === 0) {
+        console.log('ℹ️ Новых новостей для Telegram нет');
+        return;
+    }
+
+    // Обновляем список отправленных
+    const newTitles = newItems.map(item => item.title || 'Новость');
+    sentTitles = [...sentTitles, ...newTitles];
+    LS.set('sentTitles', sentTitles);
+
+    // Берём первые 3 новые новости
+    const toSend = newItems.slice(0, 3);
 
     try {
         let message = '📰 *CoinDigest — Свежие новости*\n\n';
-        newsItems.forEach((item, index) => {
+        
+        for (const item of toSend) {
             const title = item.title || 'Новость';
             const url = item.url || '#';
-            message += `${index + 1}. [${title}](${url})\n`;
+            const titleRu = await translateToRussian(title);
+            message += `• [${titleRu}](${url})\n`;
             message += `   📌 ${item.source?.title || item.sourceName || 'Unknown'}\n\n`;
-        });
+        }
+        
         message += `\n🔄 Обновлено: ${new Date().toLocaleString('ru-RU')}`;
         message += `\n🔗 Открыть сайт: ${window.location.href}`;
 
@@ -387,7 +449,7 @@ async function sendToTelegram(newsItems) {
 
         const result = await response.json();
         if (result.ok) {
-            console.log('✅ Новости отправлены в канал');
+            console.log(`✅ Отправлено ${toSend.length} новых новостей в канал`);
         } else {
             console.error('❌ Ошибка Telegram:', result.description);
         }
@@ -396,7 +458,7 @@ async function sendToTelegram(newsItems) {
     }
 }
 
-// ===== 8. РЕКЛАМА =====
+// ===== РЕКЛАМА =====
 function loadAd() {
     const container = document.getElementById('adContainer');
     const ads = LS.get('ads') || [];
@@ -441,7 +503,7 @@ function showAd(ads, index) {
     container.innerHTML = html;
 }
 
-// ===== 9. ЭКСКЛЮЗИВНЫЕ МАТЕРИАЛЫ =====
+// ===== ЭКСКЛЮЗИВНЫЕ МАТЕРИАЛЫ =====
 async function loadExclusivePosts() {
     const container = document.getElementById('postsContainer');
     
@@ -489,14 +551,14 @@ async function loadExclusivePosts() {
     }
 }
 
-// ===== 10. АВТОМАТИЧЕСКИЙ СБОР ЭКСКЛЮЗИВОВ =====
+// ===== АВТОМАТИЧЕСКИЙ СБОР ЭКСКЛЮЗИВОВ =====
 async function fetchExclusiveContent() {
     try {
         const sources = [
             'https://api.rss2json.com/v1/api.json?rss_url=https://cointelegraph.com/feed',
             'https://api.rss2json.com/v1/api.json?rss_url=https://www.coindesk.com/feed',
             'https://api.rss2json.com/v1/api.json?rss_url=https://cryptopotato.com/feed',
-            'https://api.rss2json.com/v1/api.json?rss_url=https://www.crypto-news.net/feed'
+            'https://api.rss2json.com/v1/api.json?rss_url=https://news.bitcoin.com/feed'
         ];
         
         let exclusivePosts = [];
@@ -558,7 +620,7 @@ function renderAutoPosts(posts) {
     });
 }
 
-// ===== 11. ПЕРЕМЕШИВАНИЕ =====
+// ===== ПЕРЕМЕШИВАНИЕ =====
 function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -567,7 +629,7 @@ function shuffleArray(array) {
     return array;
 }
 
-// ===== 12. МОБИЛЬНОЕ МЕНЮ =====
+// ===== МОБИЛЬНОЕ МЕНЮ =====
 document.addEventListener('DOMContentLoaded', function() {
     const menuBtn = document.getElementById('mobileMenuBtn');
     const mobileMenu = document.getElementById('mobileMenu');
@@ -593,15 +655,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Трекинг посещений
     trackVisit();
-
     setTimeout(requestNotificationPermission, 2000);
-    
     loadAd();
 });
 
-// ===== 13. ЗАПУСК =====
+// ===== ЗАПУСК =====
 loadCrypto();
 loadNews();
 loadExclusivePosts();
