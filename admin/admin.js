@@ -100,7 +100,7 @@ function renderAdmin() {
         </h2>
         <form class="admin-form" id="postForm">
             <input type="text" id="postTitle" placeholder="Заголовок поста" required />
-            <textarea id="postContent" rows="4" placeholder="Текст поста (можно использовать HTML)" required></textarea>
+            <textarea id="postContent" rows="4" placeholder="Текст поста" required></textarea>
             <button type="submit"><i class="fas fa-paper-plane"></i> Опубликовать</button>
         </form>
 
@@ -283,7 +283,7 @@ if (!LS.get('visits')) {
 
 checkAuth();
 
-// Добавляем стили для toast (если их нет)
+// Добавляем стили для toast
 const styleToast = document.createElement('style');
 styleToast.textContent = `
     @keyframes fadeInUp {
