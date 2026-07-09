@@ -5,7 +5,7 @@ const LS = {
     set: (key, val) => localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(val)),
 };
 
-// ===== ПАРОЛЬ (НОВЫЙ) =====
+// ===== ПАРОЛЬ =====
 const ADMIN_PASSWORD = 'crypto2026';
 
 // ===== СОСТОЯНИЕ =====
@@ -71,7 +71,7 @@ function logout() {
     }
 }
 
-// ===== ОСНОВНОЙ ИНТЕРФЕЙС (ТОЛЬКО АНАЛИТИКА + РЕКЛАМА) =====
+// ===== ОСНОВНОЙ ИНТЕРФЕЙС =====
 function renderAdmin() {
     const app = document.getElementById('adminApp');
     app.innerHTML = `
@@ -170,7 +170,6 @@ function initAdminFunctions() {
         });
     }
 
-    // Смена типа рекламы
     const typeSelect = document.getElementById('adType');
     if (typeSelect) {
         typeSelect.addEventListener('change', function() {
@@ -186,7 +185,6 @@ function updateAdFields(type) {
     
     if (!urlField || !linkField || !textField) return;
     
-    // Показываем/скрываем поля в зависимости от типа
     const urlLabel = urlField.previousElementSibling;
     const linkLabel = linkField.previousElementSibling;
     const textLabel = textField.previousElementSibling;
@@ -326,40 +324,59 @@ function editAd(index) {
     showToast(`📺 ${ad.name}`, 'preview', preview);
 }
 
-// ===== СТАТИСТИКА =====
+// ===== СТАТИСТИКА (ИСПРАВЛЕНА) =====
 function updateStats() {
-    // Посещения
+    // ===== ОБЩИЕ ПОСЕЩЕНИЯ =====
     let visits = LS.get('visits') || 0;
-    if (!sessionStorage.getItem('coindigest_visited')) {
-        visits++;
-        LS.set('visits', visits);
-        sessionStorage.setItem('coindigest_visited', 'true');
-    }
-    
     document.getElementById('visits').textContent = visits;
 
-    // Сегодня
-    const today = new Date().toISOString().split('T')[0];
-    const todayVisits = LS.get('todayVisits') || 0;
-    document.getElementById('todayVisits').textContent = todayVisits;
+    // ===== ПОСЕЩЕНИЯ ЗА СЕГОДНЯ =====
+    const todayKey = new Date().toISOString().split('T')[0];
+    let todayStats = LS.get('todayStats') || {};
+    
+    // Если сегодня новый день — сбрасываем счётчик
+    if (todayStats.date !== todayKey) {
+        todayStats = { date: todayKey, count: 0 };
+    }
+    document.getElementById('todayVisits').textContent = todayStats.count || 0;
 
-    // Неделя
-    const weekVisits = LS.get('weekVisits') || 0;
-    document.getElementById('weekVisits').textContent = weekVisits;
+    // ===== ПОСЕЩЕНИЯ ЗА НЕДЕЛЮ =====
+    const weekKey = getWeekKey();
+    let weekStats = LS.get('weekStats') || {};
+    
+    // Если началась новая неделя — сбрасываем счётчик
+    if (weekStats.week !== weekKey) {
+        weekStats = { week: weekKey, count: 0 };
+    }
+    document.getElementById('weekVisits').textContent = weekStats.count || 0;
 
-    // Посты
+    // ===== ПОСТЫ =====
     const posts = LS.get('posts') || [];
     document.getElementById('postsCount').textContent = posts.length;
 
-    // Эксклюзивы
-    const exclusive = posts.filter(p => p.isExclusive);
+    // ===== ЭКСКЛЮЗИВЫ =====
+    const exclusive = posts.filter(p => p.isExclusive === true);
     document.getElementById('exclusiveCount').textContent = exclusive.length;
 
-    // Последний пост
+    // ===== ПОСЛЕДНИЙ ПОСТ =====
     const lastUpdateEl = document.getElementById('lastUpdate');
     if (lastUpdateEl) {
-        lastUpdateEl.textContent = posts.length > 0 ? posts[posts.length - 1].date : '-';
+        if (posts.length > 0) {
+            // Сортируем по дате и берём последний
+            const sorted = [...posts].sort((a, b) => new Date(b.date) - new Date(a.date));
+            lastUpdateEl.textContent = sorted[0].date || '-';
+        } else {
+            lastUpdateEl.textContent = '-';
+        }
     }
+}
+
+// ===== ВСПОМОГАТЕЛЬНАЯ: НОМЕР НЕДЕЛИ =====
+function getWeekKey() {
+    const now = new Date();
+    const start = new Date(now);
+    start.setDate(now.getDate() - now.getDay());
+    return start.toISOString().split('T')[0];
 }
 
 // ===== ТОСТ-УВЕДОМЛЕНИЕ =====
@@ -409,7 +426,6 @@ function showToast(message, type = 'success', extra = '') {
             setTimeout(() => toast.remove(), 300);
         }, 2500);
     } else {
-        // Для превью закрываем по клику
         toast.style.cursor = 'pointer';
         toast.onclick = function() {
             this.style.opacity = '0';
@@ -421,27 +437,23 @@ function showToast(message, type = 'success', extra = '') {
 }
 
 // ===== ЗАПУСК =====
+// Инициализация хранилища, если пусто
 if (!LS.get('visits')) {
     LS.set('visits', 0);
 }
 
-// Инициализация дневной/недельной статистики
+// Инициализация дневной статистики
 const todayKey = new Date().toISOString().split('T')[0];
-const todayStats = LS.get('todayStats') || {};
+let todayStats = LS.get('todayStats') || {};
 if (todayStats.date !== todayKey) {
     LS.set('todayStats', { date: todayKey, count: 0 });
 }
+
+// Инициализация недельной статистики
 const weekKey = getWeekKey();
-const weekStats = LS.get('weekStats') || {};
+let weekStats = LS.get('weekStats') || {};
 if (weekStats.week !== weekKey) {
     LS.set('weekStats', { week: weekKey, count: 0 });
-}
-
-function getWeekKey() {
-    const now = new Date();
-    const start = new Date(now);
-    start.setDate(now.getDate() - now.getDay());
-    return start.toISOString().split('T')[0];
 }
 
 checkAuth();
