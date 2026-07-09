@@ -5,6 +5,39 @@ const LS = {
     set: (key, val) => localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(val)),
 };
 
+// ===== СБОР СТАТИСТИКИ (ДОБАВЛЕНО) =====
+function trackVisit() {
+    // Общие посещения
+    let visits = LS.get('visits') || 0;
+    visits++;
+    LS.set('visits', visits);
+
+    // Посещения за сегодня
+    const todayKey = new Date().toISOString().split('T')[0];
+    let todayStats = LS.get('todayStats') || {};
+    if (todayStats.date !== todayKey) {
+        todayStats = { date: todayKey, count: 0 };
+    }
+    todayStats.count++;
+    LS.set('todayStats', todayStats);
+
+    // Посещения за неделю
+    const weekKey = getWeekKey();
+    let weekStats = LS.get('weekStats') || {};
+    if (weekStats.week !== weekKey) {
+        weekStats = { week: weekKey, count: 0 };
+    }
+    weekStats.count++;
+    LS.set('weekStats', weekStats);
+}
+
+function getWeekKey() {
+    const now = new Date();
+    const start = new Date(now);
+    start.setDate(now.getDate() - now.getDay());
+    return start.toISOString().split('T')[0];
+}
+
 // ===== TELEGRAM MINI APP =====
 let tgApp = null;
 try {
@@ -90,12 +123,10 @@ const EXCLUSIVE_KEYWORDS = [
     'trend', 'market', 'investment', 'strategy'
 ];
 
-// ===== ПЕРЕМЕННЫЕ ДЛЯ УВЕДОМЛЕНИЙ =====
+// ===== ПЕРЕМЕННЫЕ =====
 let lastNewsTitles = [];
 let notificationEnabled = false;
 let pendingNotification = null;
-
-// ===== ПЕРЕМЕННЫЕ ДЛЯ РЕКЛАМЫ =====
 let adInterval = null;
 let currentAdIndex = 0;
 
@@ -375,15 +406,13 @@ function loadAd() {
         return;
     }
 
-    // Показываем текущее объявление
     showAd(ads, currentAdIndex);
     
-    // Запускаем ротацию
     if (adInterval) clearInterval(adInterval);
     adInterval = setInterval(() => {
         currentAdIndex = (currentAdIndex + 1) % ads.length;
         showAd(ads, currentAdIndex);
-    }, 30000); // Меняем каждые 30 секунд
+    }, 30000);
 }
 
 function showAd(ads, index) {
@@ -393,7 +422,6 @@ function showAd(ads, index) {
 
     let html = '<div class="ad-content">';
     
-    // Тип рекламы
     if (ad.type === 'image' && ad.url) {
         html += `<img src="${ad.url}" alt="Реклама" loading="lazy" />`;
     } else if (ad.type === 'gif' && ad.url) {
@@ -405,8 +433,8 @@ function showAd(ads, index) {
                 </video>`;
     } else if (ad.type === 'link' && ad.url) {
         html += `<a href="${ad.link}" target="_blank" rel="noopener">${ad.text || 'Перейти по ссылке'}</a>`;
-    } else if (ad.type === 'html' && ad.code) {
-        html += ad.code;
+    } else if (ad.type === 'html' && ad.text) {
+        html += ad.text;
     }
     
     html += '</div>';
@@ -565,9 +593,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // ТРЕКИНГ ПОСЕЩЕНИЙ (ДОБАВЛЕНО)
+    trackVisit();
+
     setTimeout(requestNotificationPermission, 2000);
     
-    // Загружаем рекламу
     loadAd();
 });
 
