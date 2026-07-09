@@ -1,4 +1,4 @@
-name: Обновление данных CoinDigest
+name: Обновление новостей CoinDigest
 
 on:
   schedule:
@@ -19,16 +19,17 @@ jobs:
 
       - name: 📦 Устанавливаем зависимости
         run: |
+          npm init -y
           npm install node-fetch@2
 
-      - name: 🔄 Запускаем скрипт обновления
+      - name: 🔄 Запускаем скрипт отправки
         run: |
-          node .github/workflows/update-news.js
+          node .github/workflows/send-news.js
 
       - name: 📤 Сохраняем историю и коммитим
         run: |
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
           git add sent_history.json
-          git diff --staged --quiet || git commit -m "🔄 Обновление новостей [skip ci]"
+          git diff --staged --quiet || git commit -m "🔄 Обновление истории новостей [skip ci]"
           git push
