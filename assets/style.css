@@ -238,27 +238,59 @@ img {
 .banner p {
     font-size: clamp(14px, 1.8vw, 18px);
     color: var(--text-secondary);
-    margin-bottom: 16px;
 }
 
-.banner-stats {
+/* ===== РЕКЛАМА ===== */
+.ad-section {
+    padding: clamp(12px, 2vw, 24px) 0;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+}
+
+.ad-container {
     display: flex;
     justify-content: center;
-    gap: clamp(12px, 3vw, 30px);
-    flex-wrap: wrap;
-}
-
-.banner-stats span {
-    font-size: clamp(11px, 1.2vw, 14px);
-    color: var(--text-secondary);
-    display: flex;
     align-items: center;
-    gap: 6px;
+    min-height: 60px;
 }
 
-.banner-stats i {
+.ad-container .ad-content {
+    max-width: 100%;
+    text-align: center;
+}
+
+.ad-container .ad-content img,
+.ad-container .ad-content video,
+.ad-container .ad-content iframe {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+}
+
+.ad-container .ad-content a {
+    display: inline-block;
     color: var(--accent);
-    font-size: clamp(12px, 1.2vw, 16px);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: clamp(14px, 1.5vw, 18px);
+    padding: 12px 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-sm);
+    transition: var(--transition);
+}
+
+.ad-container .ad-content a:hover {
+    background: var(--accent);
+    color: var(--bg-primary);
+}
+
+.ad-container .ad-placeholder {
+    color: var(--text-secondary);
+    font-size: clamp(12px, 1vw, 14px);
+    opacity: 0.5;
+    display: none;
 }
 
 /* ===== СЕКЦИИ ===== */
@@ -618,10 +650,6 @@ img {
     line-height: 1.4;
 }
 
-.notification-banner .notif-text strong {
-    color: var(--accent);
-}
-
 .notification-banner .notif-close {
     background: none;
     border: none;
@@ -731,10 +759,6 @@ img {
         grid-template-columns: 1fr 1fr;
         gap: 12px;
     }
-    
-    .banner-stats {
-        gap: 8px;
-    }
 }
 
 @media (max-width: 380px) {
@@ -763,10 +787,6 @@ img {
 }
 
 /* ===== TELEGRAM MINI APP ===== */
-.tg-header {
-    display: none;
-}
-
 body.tg-app .header {
     padding-top: env(safe-area-inset-top, 10px);
 }
