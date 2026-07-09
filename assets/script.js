@@ -48,7 +48,7 @@ try {
     console.log('ℹ️ Не Telegram окружение');
 }
 
-// ===== СПИСОК АЛЬТКОИНОВ ДЛЯ ФИЛЬТРАЦИИ =====
+// ===== СПИСОК АЛЬТКОИНОВ =====
 const ALTCOIN_KEYWORDS = [
     'xrp', 'ripple', 'pepe', 'dogecoin', 'doge', 'solana', 'sol', 
     'cardano', 'ada', 'polygon', 'matic', 'shiba', 'shib', 'avalanche', 'avax',
@@ -56,11 +56,10 @@ const ALTCOIN_KEYWORDS = [
     'uniswap', 'uni', 'cosmos', 'atom', 'stellar', 'xlm', 'vechain', 'vet',
     'algorand', 'algo', 'filecoin', 'fil', 'theta', 'near', 'flow', 'hedera', 'hbar',
     'quant', 'qnt', 'elrond', 'egld', 'arbitrum', 'arb',
-    'optimism', 'op', 'aptos', 'apt', 'sui', 'sei', 'injective', 'inj',
-    'pulsechain', 'hex', 'baby doge', 'floki', 'bonk', 'wojak', 'toshi'
+    'optimism', 'op', 'aptos', 'apt', 'sui', 'sei', 'injective', 'inj'
 ];
 
-// ===== НОВЫЕ ИСТОЧНИКИ НОВОСТЕЙ (ОСНОВНЫЕ) =====
+// ===== ИСТОЧНИКИ НОВОСТЕЙ =====
 const NEWS_SOURCES = [
     {
         name: 'CoinDesk (RSS)',
@@ -126,7 +125,6 @@ const NEWS_SOURCES = [
 
 // ===== РАСШИРЕННЫЕ ИСТОЧНИКИ ДЛЯ АЛЬТКОИНОВ =====
 const ALTCOIN_SOURCES = [
-    // Специализированные крипто-СМИ
     {
         name: 'Altcoin Daily',
         url: 'https://api.rss2json.com/v1/api.json?rss_url=https://altcoindaily.io/feed',
@@ -158,7 +156,7 @@ const ALTCOIN_SOURCES = [
         limit: 2
     },
     {
-        name: 'CryptoNews (altcoins)',
+        name: 'CryptoNews',
         url: 'https://api.rss2json.com/v1/api.json?rss_url=https://cryptonews.com/news/altcoins/feed',
         parser: (data) => {
             if (!data || !data.items) return [];
@@ -187,7 +185,6 @@ const ALTCOIN_SOURCES = [
         },
         limit: 2
     },
-    // Общие источники с фильтром по альткоинам
     {
         name: 'Reddit Altcoins',
         url: 'https://www.reddit.com/r/CryptoCurrency/.json?limit=10',
@@ -196,7 +193,7 @@ const ALTCOIN_SOURCES = [
             return data.data.children.map(child => ({
                 title: child.data.title,
                 url: 'https://reddit.com' + child.data.permalink,
-                source: { title: 'Reddit r/CryptoCurrency' },
+                source: { title: 'Reddit' },
                 published_at: new Date(child.data.created_utc * 1000).toISOString(),
                 thumbnail: child.data.thumbnail && child.data.thumbnail.startsWith('http') ? child.data.thumbnail : null
             }));
@@ -204,7 +201,7 @@ const ALTCOIN_SOURCES = [
         limit: 4
     },
     {
-        name: 'Reddit Altseason',
+        name: 'Reddit AltStreetBets',
         url: 'https://www.reddit.com/r/AltStreetBets/.json?limit=8',
         parser: (data) => {
             if (!data || !data.data || !data.data.children) return [];
@@ -217,67 +214,6 @@ const ALTCOIN_SOURCES = [
             }));
         },
         limit: 3
-    },
-    {
-        name: 'CryptoSlate (altcoins)',
-        url: 'https://api.rss2json.com/v1/api.json?rss_url=https://cryptoslate.com/category/altcoins/feed',
-        parser: (data) => {
-            if (!data || !data.items) return [];
-            return data.items.map(item => ({
-                title: item.title,
-                url: item.link,
-                source: { title: 'CryptoSlate' },
-                published_at: item.pubDate || new Date().toISOString(),
-                thumbnail: item.thumbnail || null
-            }));
-        },
-        limit: 2
-    },
-    {
-        name: 'Bitcoinist (altcoins)',
-        url: 'https://api.rss2json.com/v1/api.json?rss_url=https://bitcoinist.com/category/altcoins/feed',
-        parser: (data) => {
-            if (!data || !data.items) return [];
-            return data.items.map(item => ({
-                title: item.title,
-                url: item.link,
-                source: { title: 'Bitcoinist' },
-                published_at: item.pubDate || new Date().toISOString(),
-                thumbnail: item.thumbnail || null
-            }));
-        },
-        limit: 2
-    },
-    // Специализированные источники по конкретным монетам
-    {
-        name: 'XRP News',
-        url: 'https://api.rss2json.com/v1/api.json?rss_url=https://xrptoday.com/feed',
-        parser: (data) => {
-            if (!data || !data.items) return [];
-            return data.items.map(item => ({
-                title: item.title,
-                url: item.link,
-                source: { title: 'XRPToday' },
-                published_at: item.pubDate || new Date().toISOString(),
-                thumbnail: item.thumbnail || null
-            }));
-        },
-        limit: 2
-    },
-    {
-        name: 'Solana News',
-        url: 'https://api.rss2json.com/v1/api.json?rss_url=https://solana.com/news/feed',
-        parser: (data) => {
-            if (!data || !data.items) return [];
-            return data.items.map(item => ({
-                title: item.title,
-                url: item.link,
-                source: { title: 'Solana News' },
-                published_at: item.pubDate || new Date().toISOString(),
-                thumbnail: item.thumbnail || null
-            }));
-        },
-        limit: 2
     }
 ];
 
@@ -296,6 +232,32 @@ let notificationEnabled = false;
 let pendingNotification = null;
 let adInterval = null;
 let currentAdIndex = 0;
+
+// ===== НОВЫЙ ПЕРЕВОДЧИК: LIBRETRANSLATE (БЕЗЛИМИТНЫЙ) =====
+async function translateToRussian(text) {
+    if (!text) return 'Новость';
+    if (/[а-яА-Я]/.test(text)) return text;
+    try {
+        const response = await fetch(
+            `https://libretranslate.de/translate`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    q: text,
+                    source: 'en',
+                    target: 'ru',
+                    format: 'text'
+                })
+            }
+        );
+        const data = await response.json();
+        return data.translatedText || text;
+    } catch (e) {
+        console.warn('Ошибка перевода (LibreTranslate):', e);
+        return text;
+    }
+}
 
 // ===== ЗАГРУЗКА КРИПТОВАЛЮТ =====
 async function loadCrypto() {
@@ -349,32 +311,13 @@ function optimizeImageUrl(url) {
     return url;
 }
 
-// ===== ПЕРЕВОД ТЕКСТА НА РУССКИЙ =====
-async function translateToRussian(text) {
-    if (!text) return 'Новость';
-    if (/[а-яА-Я]/.test(text)) return text;
-    
-    try {
-        const response = await fetch(
-            `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|ru`
-        );
-        const data = await response.json();
-        if (data.responseData && data.responseData.translatedText) {
-            return data.responseData.translatedText;
-        }
-    } catch (e) {
-        console.warn('Ошибка перевода:', e);
-    }
-    return text;
-}
-
-// ===== ПРОВЕРКА, СОДЕРЖИТ ЛИ НОВОСТЬ УПОМИНАНИЕ АЛЬТКОИНА =====
+// ===== ПРОВЕРКА НА АЛЬТКОИН =====
 function isAltcoinNews(title) {
     const lowerTitle = title.toLowerCase();
     return ALTCOIN_KEYWORDS.some(keyword => lowerTitle.includes(keyword));
 }
 
-// ===== ЗАГРУЗКА НОВОСТЕЙ (ОСНОВНЫЕ) =====
+// ===== ЗАГРУЗКА НОВОСТЕЙ =====
 async function loadNews() {
     const container = document.getElementById('newsContainer');
     container.innerHTML = Array(6).fill(0).map(() => 
@@ -452,12 +395,9 @@ async function loadNews() {
         `;
         container.appendChild(card);
     }
-
-    // Отправляем в Telegram ТОЛЬКО новые новости
-    await sendNewNewsToTelegram(displayNews);
 }
 
-// ===== ЗАГРУЗКА НОВОСТЕЙ АЛЬТКОИНОВ (НОВАЯ ФУНКЦИЯ) =====
+// ===== ЗАГРУЗКА НОВОСТЕЙ АЛЬТКОИНОВ =====
 async function loadAltcoinNews() {
     const container = document.getElementById('altcoinContainer');
     if (!container) return;
@@ -467,7 +407,6 @@ async function loadAltcoinNews() {
     ).join('');
 
     let allNews = [];
-    let newTitles = [];
 
     for (const source of ALTCOIN_SOURCES) {
         try {
@@ -482,7 +421,6 @@ async function loadAltcoinNews() {
             const articles = source.parser(data);
             
             if (articles && articles.length > 0) {
-                // Фильтруем только те новости, которые содержат упоминания альткоинов
                 const filtered = articles.filter(item => isAltcoinNews(item.title));
                 const limited = filtered.slice(0, source.limit);
                 allNews = allNews.concat(limited.map(item => ({
@@ -505,9 +443,6 @@ async function loadAltcoinNews() {
     allNews = shuffleArray(allNews);
     const displayNews = allNews.slice(0, 10);
 
-    newTitles = displayNews.map(item => item.title);
-    checkNewAltcoinNews(newTitles);
-
     container.innerHTML = '';
     for (const item of displayNews) {
         const titleRu = await translateToRussian(item.title);
@@ -525,7 +460,6 @@ async function loadAltcoinNews() {
             `;
         }
         
-        // Ищем, какой альткоин упоминается
         let mentionedCoin = '';
         const lowerTitle = item.title.toLowerCase();
         for (const keyword of ALTCOIN_KEYWORDS) {
@@ -549,97 +483,9 @@ async function loadAltcoinNews() {
         `;
         container.appendChild(card);
     }
-
-    // Отправляем новости альткоинов в Telegram
-    await sendAltcoinNewsToTelegram(displayNews);
 }
 
-// ===== ПРОВЕРКА НОВЫХ НОВОСТЕЙ АЛЬТКОИНОВ =====
-function checkNewAltcoinNews(newTitles) {
-    if (lastAltcoinTitles.length === 0) {
-        lastAltcoinTitles = newTitles;
-        return;
-    }
-
-    const newItems = newTitles.filter(title => !lastAltcoinTitles.includes(title));
-    
-    if (newItems.length > 0 && notificationEnabled) {
-        const message = `🪙 Новость об альткоинах: ${newItems[0].substring(0, 60)}...`;
-        showNotification('🪙', message);
-        
-        if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification('CoinDigest — Новости альткоинов!', {
-                body: newItems[0].substring(0, 100) + '...',
-                icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🪙</text></svg>'
-            });
-        }
-    }
-
-    lastAltcoinTitles = newTitles;
-}
-
-// ===== ОТПРАВКА НОВОСТЕЙ АЛЬТКОИНОВ В TELEGRAM =====
-async function sendAltcoinNewsToTelegram(newsItems) {
-    const BOT_TOKEN = '8422981212:AAFqUt5juqdC_l64q7FACOBw-mFL4f0hN8Y';
-    const CHAT_ID = '-1004345602790';
-
-    let sentTitles = LS.get('sentAltcoinTitles') || [];
-    
-    const newItems = newsItems.filter(item => {
-        const title = item.title || 'Новость';
-        return !sentTitles.includes(title);
-    });
-
-    if (newItems.length === 0) {
-        console.log('ℹ️ Новых новостей альткоинов для Telegram нет');
-        return;
-    }
-
-    const newTitles = newItems.map(item => item.title || 'Новость');
-    sentTitles = [...sentTitles, ...newTitles];
-    LS.set('sentAltcoinTitles', sentTitles);
-
-    const toSend = newItems.slice(0, 3);
-
-    try {
-        let message = '🪙 *CoinDigest — Новости альткоинов*\n\n';
-        
-        for (const item of toSend) {
-            const title = item.title || 'Новость';
-            const url = item.url || '#';
-            const titleRu = await translateToRussian(title);
-            message += `• [${titleRu}](${url})\n`;
-            message += `   📌 ${item.source?.title || item.sourceName || 'Unknown'}\n\n`;
-        }
-        
-        message += `\n🔄 Обновлено: ${new Date().toLocaleString('ru-RU')}`;
-        message += `\n🔗 Подробнее на сайте: ${window.location.href}`;
-
-        const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: CHAT_ID,
-                text: message,
-                parse_mode: 'Markdown',
-                disable_web_page_preview: true,
-                disable_notification: false
-            })
-        });
-
-        const result = await response.json();
-        if (result.ok) {
-            console.log(`✅ Отправлено ${toSend.length} новостей альткоинов в канал`);
-        } else {
-            console.error('❌ Ошибка Telegram:', result.description);
-        }
-    } catch (error) {
-        console.error('❌ Ошибка отправки в Telegram:', error);
-    }
-}
-
-// ===== ПРОВЕРКА НОВЫХ НОВОСТЕЙ (для уведомлений) =====
+// ===== ПРОВЕРКА НОВЫХ НОВОСТЕЙ =====
 function checkNewNews(newTitles) {
     if (lastNewsTitles.length === 0) {
         lastNewsTitles = newTitles;
@@ -715,67 +561,6 @@ function requestNotificationPermission() {
         });
     } else if ('Notification' in window && Notification.permission === 'granted') {
         notificationEnabled = true;
-    }
-}
-
-// ===== ОТПРАВКА ОСНОВНЫХ НОВОСТЕЙ В TELEGRAM =====
-async function sendNewNewsToTelegram(newsItems) {
-    const BOT_TOKEN = '8422981212:AAFqUt5juqdC_l64q7FACOBw-mFL4f0hN8Y';
-    const CHAT_ID = '-1004345602790';
-
-    let sentTitles = LS.get('sentTitles') || [];
-    
-    const newItems = newsItems.filter(item => {
-        const title = item.title || 'Новость';
-        return !sentTitles.includes(title);
-    });
-
-    if (newItems.length === 0) {
-        console.log('ℹ️ Новых новостей для Telegram нет');
-        return;
-    }
-
-    const newTitles = newItems.map(item => item.title || 'Новость');
-    sentTitles = [...sentTitles, ...newTitles];
-    LS.set('sentTitles', sentTitles);
-
-    const toSend = newItems.slice(0, 3);
-
-    try {
-        let message = '📰 *CoinDigest — Свежие новости*\n\n';
-        
-        for (const item of toSend) {
-            const title = item.title || 'Новость';
-            const url = item.url || '#';
-            const titleRu = await translateToRussian(title);
-            message += `• [${titleRu}](${url})\n`;
-            message += `   📌 ${item.source?.title || item.sourceName || 'Unknown'}\n\n`;
-        }
-        
-        message += `\n🔄 Обновлено: ${new Date().toLocaleString('ru-RU')}`;
-        message += `\n🔗 Открыть сайт: ${window.location.href}`;
-
-        const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: CHAT_ID,
-                text: message,
-                parse_mode: 'Markdown',
-                disable_web_page_preview: true,
-                disable_notification: false
-            })
-        });
-
-        const result = await response.json();
-        if (result.ok) {
-            console.log(`✅ Отправлено ${toSend.length} новых новостей в канал`);
-        } else {
-            console.error('❌ Ошибка Telegram:', result.description);
-        }
-    } catch (error) {
-        console.error('❌ Ошибка отправки в Telegram:', error);
     }
 }
 
@@ -950,56 +735,8 @@ function shuffleArray(array) {
     return array;
 }
 
-// ===== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК =====
-function setupTabs() {
-    const tabs = document.querySelectorAll('[data-tab]');
-    const sections = {
-        main: ['cryptoSection', 'newsSection', 'altcoinSection', 'postsContainer']
-    };
-    
-    tabs.forEach(tab => {
-        tab.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // Убираем активный класс у всех вкладок
-            tabs.forEach(t => t.classList.remove('active'));
-            this.classList.add('active');
-            
-            const tabName = this.dataset.tab;
-            
-            // Показываем/скрываем секции
-            if (tabName === 'main') {
-                document.getElementById('cryptoSection').style.display = 'block';
-                document.getElementById('newsSection').style.display = 'block';
-                document.getElementById('altcoinSection').style.display = 'none';
-                document.querySelector('.blog-section').style.display = 'block';
-            } else if (tabName === 'crypto') {
-                document.getElementById('cryptoSection').style.display = 'block';
-                document.getElementById('newsSection').style.display = 'none';
-                document.getElementById('altcoinSection').style.display = 'none';
-                document.querySelector('.blog-section').style.display = 'none';
-            } else if (tabName === 'news') {
-                document.getElementById('cryptoSection').style.display = 'none';
-                document.getElementById('newsSection').style.display = 'block';
-                document.getElementById('altcoinSection').style.display = 'none';
-                document.querySelector('.blog-section').style.display = 'none';
-            } else if (tabName === 'altcoins') {
-                document.getElementById('cryptoSection').style.display = 'none';
-                document.getElementById('newsSection').style.display = 'none';
-                document.getElementById('altcoinSection').style.display = 'block';
-                document.querySelector('.blog-section').style.display = 'none';
-                
-                // Загружаем альткоины, если ещё не загружены
-                if (document.getElementById('altcoinContainer').children.length <= 1) {
-                    loadAltcoinNews();
-                }
-            }
-        });
-    });
-}
-
 // ============================================
-// ===== AI-АНАЛИЗ КРИПТОРЫНКА (Утро/Вечер) =====
+// ===== AI-АНАЛИЗ КРИПТОРЫНКА =====
 // ============================================
 
 async function generateCryptoAnalysis() {
@@ -1191,6 +928,48 @@ async function checkAndSendAnalysis() {
     }
 }
 
+// ===== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК =====
+function setupTabs() {
+    const tabs = document.querySelectorAll('[data-tab]');
+    
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            tabs.forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            
+            const tabName = this.dataset.tab;
+            
+            if (tabName === 'main') {
+                document.getElementById('cryptoSection').style.display = 'block';
+                document.getElementById('newsSection').style.display = 'block';
+                document.getElementById('altcoinSection').style.display = 'none';
+                document.querySelector('.blog-section').style.display = 'block';
+            } else if (tabName === 'crypto') {
+                document.getElementById('cryptoSection').style.display = 'block';
+                document.getElementById('newsSection').style.display = 'none';
+                document.getElementById('altcoinSection').style.display = 'none';
+                document.querySelector('.blog-section').style.display = 'none';
+            } else if (tabName === 'news') {
+                document.getElementById('cryptoSection').style.display = 'none';
+                document.getElementById('newsSection').style.display = 'block';
+                document.getElementById('altcoinSection').style.display = 'none';
+                document.querySelector('.blog-section').style.display = 'none';
+            } else if (tabName === 'altcoins') {
+                document.getElementById('cryptoSection').style.display = 'none';
+                document.getElementById('newsSection').style.display = 'none';
+                document.getElementById('altcoinSection').style.display = 'block';
+                document.querySelector('.blog-section').style.display = 'none';
+                
+                if (document.getElementById('altcoinContainer').children.length <= 1) {
+                    loadAltcoinNews();
+                }
+            }
+        });
+    });
+}
+
 // ===== МОБИЛЬНОЕ МЕНЮ =====
 document.addEventListener('DOMContentLoaded', function() {
     const menuBtn = document.getElementById('mobileMenuBtn');
@@ -1217,14 +996,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Настраиваем вкладки
     setupTabs();
-
     trackVisit();
     setTimeout(requestNotificationPermission, 2000);
     loadAd();
-
-    // Загружаем альткоины сразу (скрыто)
     loadAltcoinNews();
 });
 
@@ -1233,13 +1008,9 @@ loadCrypto();
 loadNews();
 loadExclusivePosts();
 
-// Запускаем анализ при загрузке
 setTimeout(checkAndSendAnalysis, 5000);
-
-// Проверяем каждую минуту
 setInterval(checkAndSendAnalysis, 60000);
 
-// Обновление контента раз в час
 setInterval(() => {
     loadCrypto();
     loadNews();
