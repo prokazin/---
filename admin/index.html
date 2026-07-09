@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Админ-панель CoinDigest</title>
+    <link rel="stylesheet" href="../assets/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0b0e11;
+            color: #eaecef;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .admin-container {
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+            background: #1e2329;
+            padding: 30px;
+            border-radius: 16px;
+            border: 1px solid #2b3139;
+            box-shadow: 0 8px 48px rgba(0, 0, 0, 0.6);
+        }
+        .admin-container h1 {
+            color: #f0b90b;
+            font-size: clamp(22px, 3vw, 30px);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .admin-container h1 i {
+            margin-right: 10px;
+        }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin: 20px 0 30px;
+        }
+        .stat-card {
+            background: #0b0e11;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid #2b3139;
+        }
+        .stat-card .number {
+            font-size: clamp(24px, 3vw, 32px);
+            font-weight: 700;
+            color: #f0b90b;
+        }
+        .stat-card .label {
+            color: #848e9c;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+        .admin-form input,
+        .admin-form textarea {
+            width: 100%;
+            padding: 12px 14px;
+            margin: 6px 0 14px;
+            background: #0b0e11;
+            border: 1px solid #2b3139;
+            border-radius: 8px;
+            color: #eaecef;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+        .admin-form input:focus,
+        .admin-form textarea:focus {
+            outline: none;
+            border-color: #f0b90b;
+        }
+        .admin-form textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        .admin-form button {
+            background: #f0b90b;
+            color: #0b0e11;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+            transition: opacity 0.3s, transform 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .admin-form button:hover {
+            opacity: 0.85;
+            transform: translateY(-1px);
+        }
+        .admin-form button:active {
+            transform: scale(0.98);
+        }
+        .post-list {
+            margin-top: 30px;
+        }
+        .post-list h2 {
+            font-size: 18px;
+            color: #eaecef;
+            margin-bottom: 12px;
+        }
+        .post-item {
+            background: #0b0e11;
+            padding: 14px 16px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid #2b3139;
+            transition: border-color 0.3s;
+        }
+        .post-item:hover {
+            border-color: #f0b90b;
+        }
+        .post-item .post-content {
+            flex: 1;
+            min-width: 0;
+        }
+        .post-item .post-content strong {
+            display: block;
+            font-size: 15px;
+            margin-bottom: 2px;
+            word-break: break-word;
+        }
+        .post-item .post-content small {
+            color: #848e9c;
+            font-size: 12px;
+        }
+        .post-item .post-content p {
+            color: #848e9c;
+            font-size: 13px;
+            margin-top: 4px;
+            word-break: break-word;
+        }
+        .post-item .delete-btn {
+            background: #f6465d;
+            color: #fff;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: opacity 0.3s;
+            flex-shrink: 0;
+        }
+        .post-item .delete-btn:hover {
+            opacity: 0.8;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #f0b90b;
+            text-decoration: none;
+            font-weight: 500;
+            transition: opacity 0.3s;
+        }
+        .back-link:hover {
+            opacity: 0.8;
+        }
+        .logout-btn {
+            background: #f6465d;
+            color: #fff;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: opacity 0.3s;
+        }
+        .logout-btn:hover {
+            opacity: 0.8;
+        }
+        .login-box {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        .login-box h1 {
+            justify-content: center !important;
+        }
+        .login-box input {
+            width: 100%;
+            max-width: 320px;
+            padding: 14px 16px;
+            margin: 10px 0 16px;
+            background: #0b0e11;
+            border: 1px solid #2b3139;
+            border-radius: 8px;
+            color: #eaecef;
+            font-size: 16px;
+            font-family: inherit;
+            text-align: center;
+        }
+        .login-box input:focus {
+            outline: none;
+            border-color: #f0b90b;
+        }
+        .login-box button {
+            background: #f0b90b;
+            color: #0b0e11;
+            border: none;
+            padding: 14px 40px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+        .login-box button:hover {
+            opacity: 0.85;
+        }
+        .error-msg {
+            color: #f6465d;
+            margin-top: 12px;
+            font-size: 14px;
+        }
+        .admin-form .form-row {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+        .admin-form .form-row input {
+            flex: 1;
+        }
+        @media (max-width: 768px) {
+            .admin-container {
+                padding: 20px 16px;
+            }
+            .stat-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+            }
+            .post-item {
+                flex-wrap: wrap;
+            }
+            .post-item .delete-btn {
+                width: 100%;
+                text-align: center;
+                padding: 10px;
+            }
+            .admin-form .form-row {
+                flex-direction: column;
+            }
+            .admin-form .form-row button {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+        @media (max-width: 480px) {
+            .stat-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .admin-container h1 {
+                font-size: 20px;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+            .logout-btn {
+                width: 100%;
+                text-align: center;
+            }
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container" id="adminApp">
+        <!-- Контент рендерится через JS -->
+    </div>
+    <script src="admin.js"></script>
+</body>
+</html>
