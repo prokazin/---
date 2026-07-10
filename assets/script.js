@@ -72,14 +72,14 @@ function getRemainingTranslations() {
     return Math.max(0, MAX_TRANSLATIONS_PER_DAY - stats.count);
 }
 
-// ===== ПЕРЕВОДЧИК =====
+// ===== ПЕРЕВОДЧИК (БЕЗ ЛИШНИХ ПРЕДУПРЕЖДЕНИЙ) =====
 async function translateToRussian(text) {
     if (!text) return 'Новость';
     if (/[а-яА-Я]/.test(text)) return text;
     
     const remaining = getRemainingTranslations();
     if (remaining <= 0) {
-        console.warn(`⚠️ Лимит переводов исчерпан (${MAX_TRANSLATIONS_PER_DAY}/день). Возвращаем оригинал.`);
+        // Лимит исчерпан — возвращаем оригинал без предупреждений
         return text;
     }
     
@@ -93,7 +93,8 @@ async function translateToRussian(text) {
             return data.responseData.translatedText;
         }
     } catch (e) {
-        console.warn('Ошибка перевода:', e);
+        // Ошибка API — просто возвращаем оригинал
+        console.debug('Ошибка перевода (не критично):', e.message);
     }
     return text;
 }
@@ -677,7 +678,7 @@ function requestNotificationPermission() {
     }
 }
 
-// ===== ОТПРАВКА НОВОСТЕЙ В TELEGRAM =====
+// ===== ОТПРАВКА НОВОСТЕЙ В TELEGRAM (БЕЗ ССЫЛКИ НА САЙТ) =====
 async function sendNewsToTelegram(newsItems) {
     const BOT_TOKEN = '8422981212:AAFqUt5juqdC_l64q7FACOBw-mFL4f0hN8Y';
     const CHAT_ID = '-1004345602790';
@@ -1104,7 +1105,7 @@ async function checkAndSendAnalysis() {
     }
 }
 
-// ===== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК (ИСПРАВЛЕНО) =====
+// ===== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК (С ПЕРЕЗАГРУЗКОЙ ДАННЫХ) =====
 function setupTabs() {
     const tabs = document.querySelectorAll('[data-tab]');
 
@@ -1129,7 +1130,6 @@ function setupTabs() {
                 document.getElementById('cryptoSection').style.display = 'block';
                 document.getElementById('newsSection').style.display = 'block';
                 if (blogSection) blogSection.style.display = 'block';
-                // Перезагружаем данные
                 loadCrypto();
                 loadNews();
                 loadExclusivePosts();
