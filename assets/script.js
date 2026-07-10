@@ -50,7 +50,7 @@ try {
 
 // ===== СПИСОК АЛЬТКОИНОВ =====
 const ALTCOIN_KEYWORDS = [
-    'xrp', 'ripple', 'pepe', 'dogecoin', 'doge', 'solana', 'sol', 
+    'xrp', 'ripple', 'pepe', 'dogecoin', 'doge', 'solana', 'sol',
     'cardano', 'ada', 'polygon', 'matic', 'shiba', 'shib', 'avalanche', 'avax',
     'chainlink', 'link', 'polkadot', 'dot', 'litecoin', 'ltc',
     'uniswap', 'uni', 'cosmos', 'atom', 'stellar', 'xlm', 'vechain', 'vet',
@@ -219,7 +219,7 @@ const ALTCOIN_SOURCES = [
 
 // ===== ЭКСКЛЮЗИВНЫЕ КЛЮЧЕВЫЕ СЛОВА =====
 const EXCLUSIVE_KEYWORDS = [
-    'эксклюзив', 'инсайд', 'аналитика', 'прогноз', 'отчет', 
+    'эксклюзив', 'инсайд', 'аналитика', 'прогноз', 'отчет',
     'анализ', 'тенденция', 'рынок', 'инвестиции', 'стратегия',
     'exclusive', 'insight', 'analysis', 'forecast', 'report',
     'trend', 'market', 'investment', 'strategy'
@@ -233,28 +233,37 @@ let pendingNotification = null;
 let adInterval = null;
 let currentAdIndex = 0;
 
-// ===== ПЕРЕВОДЧИК: MYMEMORY =====
+// ===== НОВЫЙ ПЕРЕВОДЧИК: LIBRETRANSLATE (БЕЗЛИМИТНЫЙ) =====
 async function translateToRussian(text) {
     if (!text) return 'Новость';
-    if (/[а-яА-Я]/.test(text)) return text;
+    // Убираем проверку на кириллицу, чтобы переводилось всё
     try {
         const response = await fetch(
-            `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|ru`
+            `https://libretranslate.de/translate`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    q: text,
+                    source: 'en',
+                    target: 'ru',
+                    format: 'text'
+                })
+            }
         );
         const data = await response.json();
-        if (data.responseData && data.responseData.translatedText) {
-            return data.responseData.translatedText;
-        }
+        // Если перевод не удался, возвращаем оригинал
+        return data.translatedText || text;
     } catch (e) {
-        console.warn('Ошибка перевода:', e);
+        console.warn('Ошибка перевода (LibreTranslate):', e);
+        return text;
     }
-    return text;
 }
 
 // ===== ЗАГРУЗКА КРИПТОВАЛЮТ =====
 async function loadCrypto() {
     const container = document.getElementById('cryptoContainer');
-    container.innerHTML = Array(12).fill(0).map(() => 
+    container.innerHTML = Array(12).fill(0).map(() =>
         '<div class="skeleton" style="height:clamp(100px, 12vw, 130px);border-radius:12px;"></div>'
     ).join('');
 
@@ -284,11 +293,11 @@ async function loadCrypto() {
             container.appendChild(card);
         });
 
-        document.getElementById('updateTime').textContent = 
+        document.getElementById('updateTime').textContent =
             'Обновление: ' + new Date().toLocaleTimeString();
 
     } catch (error) {
-        container.innerHTML = 
+        container.innerHTML =
             '<p style="color:var(--red);grid-column:1/-1;text-align:center;">⚠️ Не удалось загрузить данные</p>';
         console.error('Ошибка загрузки криптовалют:', error);
     }
@@ -312,17 +321,16 @@ function isAltcoinNews(title) {
 // ===== ЗАГРУЗКА НОВОСТЕЙ =====
 async function loadNews() {
     const container = document.getElementById('newsContainer');
-    container.innerHTML = Array(6).fill(0).map(() => 
+    container.innerHTML = Array(6).fill(0).map(() =>
         '<div class="skeleton" style="height:clamp(120px, 15vw, 160px);border-radius:12px;"></div>'
     ).join('');
 
     let allNews = [];
-    let newTitles = [];
 
     for (const source of NEWS_SOURCES) {
         try {
             const response = await fetch(source.url);
-            
+
             if (!response.ok) {
                 console.warn(`⚠️ Ошибка ${source.name}: ${response.status}`);
                 continue;
@@ -330,7 +338,7 @@ async function loadNews() {
 
             const data = await response.json();
             const articles = source.parser(data);
-            
+
             if (articles && articles.length > 0) {
                 const limited = articles.slice(0, source.limit);
                 allNews = allNews.concat(limited.map(item => ({
@@ -352,30 +360,29 @@ async function loadNews() {
 
     allNews = shuffleArray(allNews);
     const displayNews = allNews.slice(0, 6);
-
-    newTitles = displayNews.map(item => item.title);
+    const newTitles = displayNews.map(item => item.title);
     checkNewNews(newTitles);
 
     container.innerHTML = '';
     for (const item of displayNews) {
         const titleRu = await translateToRussian(item.title);
-        
+
         const card = document.createElement('div');
         card.className = 'news-card';
-        
+
         let thumbnailHtml = '';
         if (item.thumbnail && item.thumbnail.startsWith('http')) {
             thumbnailHtml = `
                 <div style="margin-bottom:8px;overflow:hidden;border-radius:6px;background:var(--bg-primary);">
-                    <img src="${item.thumbnail}" alt="" loading="lazy" 
+                    <img src="${item.thumbnail}" alt="" loading="lazy"
                          style="width:100%;height:auto;max-height:160px;object-fit:cover;display:block;" />
                 </div>
             `;
         }
-        
+
         card.innerHTML = `
             <div class="news-source">
-                <i class="fas fa-globe"></i> 
+                <i class="fas fa-globe"></i>
                 ${item.source?.title || item.sourceName || 'Unknown'}
                 <span style="margin-left:auto;color:var(--text-secondary);font-size:clamp(9px,0.8vw,11px);">
                     ${item.published_at ? new Date(item.published_at).toLocaleDateString('ru-RU') : 'Сегодня'}
@@ -388,16 +395,16 @@ async function loadNews() {
         container.appendChild(card);
     }
 
-    // ✅ Отправляем в Telegram через правильную функцию
-    await sendNewNewsToTelegram(displayNews);
+    // ✅ Отправляем ВСЕ загруженные новости (без проверки на дубли)
+    await sendNewsToTelegram(displayNews);
 }
 
 // ===== ЗАГРУЗКА НОВОСТЕЙ АЛЬТКОИНОВ =====
 async function loadAltcoinNews() {
     const container = document.getElementById('altcoinContainer');
     if (!container) return;
-    
-    container.innerHTML = Array(6).fill(0).map(() => 
+
+    container.innerHTML = Array(6).fill(0).map(() =>
         '<div class="skeleton" style="height:clamp(120px, 15vw, 160px);border-radius:12px;"></div>'
     ).join('');
 
@@ -406,7 +413,7 @@ async function loadAltcoinNews() {
     for (const source of ALTCOIN_SOURCES) {
         try {
             const response = await fetch(source.url);
-            
+
             if (!response.ok) {
                 console.warn(`⚠️ Ошибка ${source.name}: ${response.status}`);
                 continue;
@@ -414,7 +421,7 @@ async function loadAltcoinNews() {
 
             const data = await response.json();
             const articles = source.parser(data);
-            
+
             if (articles && articles.length > 0) {
                 const filtered = articles.filter(item => isAltcoinNews(item.title));
                 const limited = filtered.slice(0, source.limit);
@@ -441,20 +448,20 @@ async function loadAltcoinNews() {
     container.innerHTML = '';
     for (const item of displayNews) {
         const titleRu = await translateToRussian(item.title);
-        
+
         const card = document.createElement('div');
         card.className = 'news-card';
-        
+
         let thumbnailHtml = '';
         if (item.thumbnail && item.thumbnail.startsWith('http')) {
             thumbnailHtml = `
                 <div style="margin-bottom:8px;overflow:hidden;border-radius:6px;background:var(--bg-primary);">
-                    <img src="${item.thumbnail}" alt="" loading="lazy" 
+                    <img src="${item.thumbnail}" alt="" loading="lazy"
                          style="width:100%;height:auto;max-height:160px;object-fit:cover;display:block;" />
                 </div>
             `;
         }
-        
+
         let mentionedCoin = '';
         const lowerTitle = item.title.toLowerCase();
         for (const keyword of ALTCOIN_KEYWORDS) {
@@ -463,10 +470,10 @@ async function loadAltcoinNews() {
                 break;
             }
         }
-        
+
         card.innerHTML = `
             <div class="news-source">
-                <i class="fas fa-coins"></i> 
+                <i class="fas fa-coins"></i>
                 ${mentionedCoin ? `🪙 ${mentionedCoin}` : 'Альткоин'}
                 <span style="margin-left:auto;color:var(--text-secondary);font-size:clamp(9px,0.8vw,11px);">
                     ${item.published_at ? new Date(item.published_at).toLocaleDateString('ru-RU') : 'Сегодня'}
@@ -480,7 +487,7 @@ async function loadAltcoinNews() {
     }
 }
 
-// ===== ПРОВЕРКА НОВЫХ НОВОСТЕЙ =====
+// ===== ПРОВЕРКА НОВЫХ НОВОСТЕЙ (ДЛЯ УВЕДОМЛЕНИЙ НА САЙТЕ) =====
 function checkNewNews(newTitles) {
     if (lastNewsTitles.length === 0) {
         lastNewsTitles = newTitles;
@@ -488,11 +495,11 @@ function checkNewNews(newTitles) {
     }
 
     const newItems = newTitles.filter(title => !lastNewsTitles.includes(title));
-    
+
     if (newItems.length > 0 && notificationEnabled) {
         const message = `📰 Новая новость: ${newItems[0].substring(0, 60)}...`;
         showNotification('📰', message);
-        
+
         if ('Notification' in window && Notification.permission === 'granted') {
             new Notification('CoinDigest — Новая новость!', {
                 body: newItems[0].substring(0, 100) + '...',
@@ -515,12 +522,12 @@ function showNotification(icon, text) {
 
     const iconEl = banner.querySelector('.notif-icon');
     const textEl = banner.querySelector('.notif-text');
-    
+
     if (iconEl) iconEl.innerHTML = `<i class="${icon.includes('fa-') ? icon : 'fas fa-bell'}"></i>`;
     if (textEl) textEl.innerHTML = text;
-    
+
     banner.classList.add('show');
-    
+
     clearTimeout(pendingNotification);
     pendingNotification = setTimeout(() => {
         banner.classList.remove('show');
@@ -559,36 +566,22 @@ function requestNotificationPermission() {
     }
 }
 
-// ===== ОТПРАВКА НОВОСТЕЙ В TELEGRAM (ПРАВИЛЬНАЯ ВЕРСИЯ) =====
-async function sendNewNewsToTelegram(newsItems) {
+// ===== ОТПРАВКА НОВОСТЕЙ В TELEGRAM (БЕЗ ПРОВЕРКИ НА ДУБЛИ) =====
+async function sendNewsToTelegram(newsItems) {
     const BOT_TOKEN = '8422981212:AAFqUt5juqdC_l64q7FACOBw-mFL4f0hN8Y';
     const CHAT_ID = '-1004345602790';
 
-    // Загружаем уже отправленные заголовки
-    let sentTitles = LS.get('sentTitles') || [];
-    
-    // Фильтруем только новые
-    const newItems = newsItems.filter(item => {
-        const title = item.title || 'Новость';
-        return !sentTitles.includes(title);
-    });
+    // Берем первые 3 новости из загруженных
+    const toSend = newsItems.slice(0, 3);
 
-    if (newItems.length === 0) {
-        console.log('ℹ️ Новых новостей для Telegram нет');
+    if (toSend.length === 0) {
+        console.log('ℹ️ Нет новостей для отправки');
         return;
     }
 
-    // Обновляем историю
-    const newTitles = newItems.map(item => item.title || 'Новость');
-    sentTitles = [...sentTitles, ...newTitles];
-    LS.set('sentTitles', sentTitles);
-
-    // Берём первые 3 новости для отправки
-    const toSend = newItems.slice(0, 3);
-
     try {
         let message = '📰 *CoinDigest — Свежие новости*\n\n';
-        
+
         for (const item of toSend) {
             const title = item.title || 'Новость';
             const url = item.url || '#';
@@ -597,7 +590,7 @@ async function sendNewNewsToTelegram(newsItems) {
             message += `• [${titleRu}](${url})\n`;
             message += `   📌 ${item.source?.title || item.sourceName || 'Unknown'}\n\n`;
         }
-        
+
         message += `\n🔄 Обновлено: ${new Date().toLocaleString('ru-RU')}`;
         message += `\n🔗 Открыть сайт: ${window.location.href}`;
 
@@ -616,7 +609,7 @@ async function sendNewNewsToTelegram(newsItems) {
 
         const result = await response.json();
         if (result.ok) {
-            console.log(`✅ Отправлено ${toSend.length} новых новостей в канал`);
+            console.log(`✅ Отправлено ${toSend.length} новостей в канал`);
         } else {
             console.error('❌ Ошибка Telegram:', result.description);
         }
@@ -629,14 +622,14 @@ async function sendNewNewsToTelegram(newsItems) {
 function loadAd() {
     const container = document.getElementById('adContainer');
     const ads = LS.get('ads') || [];
-    
+
     if (!ads || ads.length === 0) {
         container.innerHTML = '';
         return;
     }
 
     showAd(ads, currentAdIndex);
-    
+
     if (adInterval) clearInterval(adInterval);
     adInterval = setInterval(() => {
         currentAdIndex = (currentAdIndex + 1) % ads.length;
@@ -650,7 +643,7 @@ function showAd(ads, index) {
     if (!ad) return;
 
     let html = '<div class="ad-content">';
-    
+
     if (ad.type === 'image' && ad.url) {
         html += `<img src="${ad.url}" alt="Реклама" loading="lazy" />`;
     } else if (ad.type === 'gif' && ad.url) {
@@ -665,7 +658,7 @@ function showAd(ads, index) {
     } else if (ad.type === 'html' && ad.text) {
         html += ad.text;
     }
-    
+
     html += '</div>';
     container.innerHTML = html;
 }
@@ -673,14 +666,14 @@ function showAd(ads, index) {
 // ===== ЭКСКЛЮЗИВНЫЕ МАТЕРИАЛЫ =====
 async function loadExclusivePosts() {
     const container = document.getElementById('postsContainer');
-    
+
     try {
         const response = await fetch('data/posts.json');
         let posts = await response.json();
-        
+
         const autoExclusive = await fetchExclusiveContent();
         posts = posts.concat(autoExclusive);
-        
+
         const uniquePosts = [];
         const seenTitles = new Set();
         for (const post of posts) {
@@ -690,7 +683,7 @@ async function loadExclusivePosts() {
             }
         }
         posts = uniquePosts.slice(0, 9);
-        
+
         container.innerHTML = '';
 
         if (posts.length === 0) {
@@ -727,28 +720,28 @@ async function fetchExclusiveContent() {
             'https://api.rss2json.com/v1/api.json?rss_url=https://cryptopotato.com/feed',
             'https://api.rss2json.com/v1/api.json?rss_url=https://news.bitcoin.com/feed'
         ];
-        
+
         let exclusivePosts = [];
         const maxPosts = 6;
-        
+
         for (const url of sources) {
             if (exclusivePosts.length >= maxPosts) break;
-            
+
             try {
                 const response = await fetch(url);
                 if (!response.ok) continue;
-                
+
                 const data = await response.json();
                 if (!data || !data.items) continue;
-                
+
                 for (const item of data.items) {
                     if (exclusivePosts.length >= maxPosts) break;
-                    
+
                     const text = (item.title + ' ' + (item.description || '')).toLowerCase();
-                    const isExclusive = EXCLUSIVE_KEYWORDS.some(keyword => 
+                    const isExclusive = EXCLUSIVE_KEYWORDS.some(keyword =>
                         text.includes(keyword.toLowerCase())
                     );
-                    
+
                     if (isExclusive) {
                         exclusivePosts.push({
                             title: item.title,
@@ -763,7 +756,7 @@ async function fetchExclusiveContent() {
                 console.warn('Ошибка парсинга источника:', e);
             }
         }
-        
+
         return exclusivePosts;
     } catch (error) {
         console.error('Ошибка автоматического сбора эксклюзивов:', error);
@@ -806,7 +799,7 @@ async function generateCryptoAnalysis() {
             'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&sparkline=false'
         );
         const coins = await priceResponse.json();
-        
+
         let news = [];
         try {
             const newsResponse = await fetch('data/news_cache.json');
@@ -849,7 +842,7 @@ async function generateCryptoAnalysis() {
 
         const bullishKeywords = ['рост', 'бычий', 'растёт', 'увеличивается', 'покупают', 'инвестиции', 'одобрение', 'прорыв'];
         const bearishKeywords = ['падение', 'медвежий', 'падает', 'снижается', 'продают', 'регуляция', 'запрет', 'риск'];
-        
+
         let bullishNewsCount = 0;
         let bearishNewsCount = 0;
 
@@ -875,7 +868,7 @@ async function generateCryptoAnalysis() {
 
         const timeOfDay = new Date().getHours() < 12 ? 'утренний' : 'вечерний';
         const dateStr = new Date().toLocaleDateString('ru-RU');
-        
+
         const sortedByChange = [...priceChanges].sort((a, b) => b.change - a.change);
         const topGainers = sortedByChange.slice(0, 3).filter(c => c.change > 0);
         const topLosers = sortedByChange.slice(-3).filter(c => c.change < 0);
@@ -972,7 +965,7 @@ async function checkAndSendAnalysis() {
         const key = `morning_${dateKey}`;
         if (LS.get(key)) return;
         LS.set(key, true);
-        
+
         console.log('📊 Генерируем утренний анализ...');
         const analysis = await generateCryptoAnalysis();
         await sendAnalysisToTelegram(analysis);
@@ -982,7 +975,7 @@ async function checkAndSendAnalysis() {
         const key = `evening_${dateKey}`;
         if (LS.get(key)) return;
         LS.set(key, true);
-        
+
         console.log('📊 Генерируем вечерний анализ...');
         const analysis = await generateCryptoAnalysis();
         await sendAnalysisToTelegram(analysis);
@@ -992,16 +985,16 @@ async function checkAndSendAnalysis() {
 // ===== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК =====
 function setupTabs() {
     const tabs = document.querySelectorAll('[data-tab]');
-    
+
     tabs.forEach(tab => {
         tab.addEventListener('click', function(e) {
             e.preventDefault();
-            
+
             tabs.forEach(t => t.classList.remove('active'));
             this.classList.add('active');
-            
+
             const tabName = this.dataset.tab;
-            
+
             if (tabName === 'main') {
                 document.getElementById('cryptoSection').style.display = 'block';
                 document.getElementById('newsSection').style.display = 'block';
@@ -1022,7 +1015,7 @@ function setupTabs() {
                 document.getElementById('newsSection').style.display = 'none';
                 document.getElementById('altcoinSection').style.display = 'block';
                 document.querySelector('.blog-section').style.display = 'none';
-                
+
                 if (document.getElementById('altcoinContainer').children.length <= 1) {
                     loadAltcoinNews();
                 }
@@ -1035,15 +1028,15 @@ function setupTabs() {
 document.addEventListener('DOMContentLoaded', function() {
     const menuBtn = document.getElementById('mobileMenuBtn');
     const mobileMenu = document.getElementById('mobileMenu');
-    
+
     if (menuBtn && mobileMenu) {
         menuBtn.addEventListener('click', function(e) {
             e.stopPropagation();
             mobileMenu.classList.toggle('open');
             const icon = this.querySelector('i');
             if (icon) {
-                icon.className = mobileMenu.classList.contains('open') 
-                    ? 'fas fa-times' 
+                icon.className = mobileMenu.classList.contains('open')
+                    ? 'fas fa-times'
                     : 'fas fa-bars';
             }
         });
