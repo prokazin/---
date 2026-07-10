@@ -233,30 +233,22 @@ let pendingNotification = null;
 let adInterval = null;
 let currentAdIndex = 0;
 
-// ===== НОВЫЙ ПЕРЕВОДЧИК: LIBRETRANSLATE (БЕЗЛИМИТНЫЙ) =====
+// ===== ПЕРЕВОДЧИК: MYMEMORY (С ЛИМИТОМ) =====
 async function translateToRussian(text) {
     if (!text) return 'Новость';
     if (/[а-яА-Я]/.test(text)) return text;
     try {
         const response = await fetch(
-            `https://libretranslate.de/translate`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    q: text,
-                    source: 'en',
-                    target: 'ru',
-                    format: 'text'
-                })
-            }
+            `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|ru`
         );
         const data = await response.json();
-        return data.translatedText || text;
+        if (data.responseData && data.responseData.translatedText) {
+            return data.responseData.translatedText;
+        }
     } catch (e) {
-        console.warn('Ошибка перевода (LibreTranslate):', e);
-        return text;
+        console.warn('Ошибка перевода:', e);
     }
+    return text;
 }
 
 // ===== ЗАГРУЗКА КРИПТОВАЛЮТ =====
