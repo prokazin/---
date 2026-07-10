@@ -72,7 +72,7 @@ function getRemainingTranslations() {
     return Math.max(0, MAX_TRANSLATIONS_PER_DAY - stats.count);
 }
 
-// ===== ПЕРЕВОДЧИК (БЕЗ ЛИШНИХ ПРЕДУПРЕЖДЕНИЙ) =====
+// ===== ПЕРЕВОДЧИК (ПОЛНОСТЬЮ БЕЗ ПРЕДУПРЕЖДЕНИЙ) =====
 async function translateToRussian(text) {
     if (!text) return 'Новость';
     if (/[а-яА-Я]/.test(text)) return text;
@@ -86,7 +86,16 @@ async function translateToRussian(text) {
         const response = await fetch(
             `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|ru`
         );
-        const data = await response.json();
+        
+        // Получаем ответ как текст и парсим вручную
+        const rawText = await response.text();
+        const data = JSON.parse(rawText);
+        
+        // Если есть предупреждение (403) или ошибка — просто возвращаем оригинал
+        if (data.responseStatus === 403 || data.responseStatus === 429) {
+            return text;
+        }
+        
         if (data.responseData && data.responseData.translatedText) {
             incrementTranslationCount();
             return data.responseData.translatedText;
@@ -418,7 +427,7 @@ async function loadCrypto() {
     }
 }
 
-// ===== ЗАГРУЗКА НОВОСТЕЙ (ИСПРАВЛЕНО) =====
+// ===== ЗАГРУЗКА НОВОСТЕЙ =====
 async function loadNews() {
     const container = document.getElementById('newsContainer');
     container.innerHTML = Array(6).fill(0).map(() =>
@@ -463,15 +472,12 @@ async function loadNews() {
     const newTitles = displayNews.map(item => item.title);
     checkNewNews(newTitles);
 
-    // Получаем остаток переводов
     const remaining = getRemainingTranslations();
-    // Если лимит исчерпан — maxTranslations = 0, но новости всё равно показываем
     const maxTranslations = Math.min(displayNews.length, 6, Math.max(remaining, 0));
 
     container.innerHTML = '';
     for (let i = 0; i < displayNews.length; i++) {
         const item = displayNews[i];
-        // Если переводов нет — показываем оригинал
         const titleRu = maxTranslations > 0 && i < maxTranslations 
             ? await translateToRussian(item.title) 
             : item.title;
@@ -505,7 +511,6 @@ async function loadNews() {
         container.appendChild(card);
     }
 
-    // Отправляем в Telegram только переведённые новости (или все, если лимит есть)
     const newsForTelegram = maxTranslations > 0 
         ? displayNews.slice(0, maxTranslations) 
         : displayNews.slice(0, 3);
