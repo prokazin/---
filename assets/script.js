@@ -79,7 +79,6 @@ async function translateToRussian(text) {
     
     const remaining = getRemainingTranslations();
     if (remaining <= 0) {
-        // Лимит исчерпан — возвращаем оригинал без предупреждений
         return text;
     }
     
@@ -93,7 +92,6 @@ async function translateToRussian(text) {
             return data.responseData.translatedText;
         }
     } catch (e) {
-        // Ошибка API — просто возвращаем оригинал
         console.debug('Ошибка перевода (не критично):', e.message);
     }
     return text;
@@ -420,7 +418,7 @@ async function loadCrypto() {
     }
 }
 
-// ===== ЗАГРУЗКА НОВОСТЕЙ =====
+// ===== ЗАГРУЗКА НОВОСТЕЙ (ИСПРАВЛЕНО) =====
 async function loadNews() {
     const container = document.getElementById('newsContainer');
     container.innerHTML = Array(6).fill(0).map(() =>
@@ -465,13 +463,18 @@ async function loadNews() {
     const newTitles = displayNews.map(item => item.title);
     checkNewNews(newTitles);
 
+    // Получаем остаток переводов
     const remaining = getRemainingTranslations();
-    const maxTranslations = Math.min(displayNews.length, 6, remaining);
+    // Если лимит исчерпан — maxTranslations = 0, но новости всё равно показываем
+    const maxTranslations = Math.min(displayNews.length, 6, Math.max(remaining, 0));
 
     container.innerHTML = '';
     for (let i = 0; i < displayNews.length; i++) {
         const item = displayNews[i];
-        const titleRu = i < maxTranslations ? await translateToRussian(item.title) : item.title;
+        // Если переводов нет — показываем оригинал
+        const titleRu = maxTranslations > 0 && i < maxTranslations 
+            ? await translateToRussian(item.title) 
+            : item.title;
 
         const card = document.createElement('div');
         card.className = 'news-card';
@@ -494,7 +497,7 @@ async function loadNews() {
                     ${item.published_at ? new Date(item.published_at).toLocaleDateString('ru-RU') : 'Сегодня'}
                 </span>
                 <span class="source-badge">${item.sourceName || ''}</span>
-                ${i >= maxTranslations ? '<span class="source-badge" style="background:#848e9c;color:#fff;">EN</span>' : ''}
+                ${maxTranslations === 0 || i >= maxTranslations ? '<span class="source-badge" style="background:#848e9c;color:#fff;">EN</span>' : ''}
             </div>
             ${thumbnailHtml}
             <h3><a href="${item.url}" target="_blank" rel="noopener">${titleRu}</a></h3>
@@ -502,8 +505,11 @@ async function loadNews() {
         container.appendChild(card);
     }
 
-    const translatedNews = displayNews.slice(0, maxTranslations);
-    await sendNewsToTelegram(translatedNews);
+    // Отправляем в Telegram только переведённые новости (или все, если лимит есть)
+    const newsForTelegram = maxTranslations > 0 
+        ? displayNews.slice(0, maxTranslations) 
+        : displayNews.slice(0, 3);
+    await sendNewsToTelegram(newsForTelegram);
 }
 
 // ===== ЗАГРУЗКА НОВОСТЕЙ АЛЬТКОИНОВ =====
@@ -553,12 +559,14 @@ async function loadAltcoinNews() {
     const displayNews = allNews.slice(0, 10);
 
     const remaining = getRemainingTranslations();
-    const maxTranslations = Math.min(displayNews.length, 6, remaining);
+    const maxTranslations = Math.min(displayNews.length, 6, Math.max(remaining, 0));
 
     container.innerHTML = '';
     for (let i = 0; i < displayNews.length; i++) {
         const item = displayNews[i];
-        const titleRu = i < maxTranslations ? await translateToRussian(item.title) : item.title;
+        const titleRu = maxTranslations > 0 && i < maxTranslations 
+            ? await translateToRussian(item.title) 
+            : item.title;
 
         const card = document.createElement('div');
         card.className = 'news-card';
@@ -590,7 +598,7 @@ async function loadAltcoinNews() {
                     ${item.published_at ? new Date(item.published_at).toLocaleDateString('ru-RU') : 'Сегодня'}
                 </span>
                 <span class="source-badge">${item.sourceName || ''}</span>
-                ${i >= maxTranslations ? '<span class="source-badge" style="background:#848e9c;color:#fff;">EN</span>' : ''}
+                ${maxTranslations === 0 || i >= maxTranslations ? '<span class="source-badge" style="background:#848e9c;color:#fff;">EN</span>' : ''}
             </div>
             ${thumbnailHtml}
             <h3><a href="${item.url}" target="_blank" rel="noopener">${titleRu}</a></h3>
@@ -678,7 +686,7 @@ function requestNotificationPermission() {
     }
 }
 
-// ===== ОТПРАВКА НОВОСТЕЙ В TELEGRAM (БЕЗ ССЫЛКИ НА САЙТ) =====
+// ===== ОТПРАВКА НОВОСТЕЙ В TELEGRAM =====
 async function sendNewsToTelegram(newsItems) {
     const BOT_TOKEN = '8422981212:AAFqUt5juqdC_l64q7FACOBw-mFL4f0hN8Y';
     const CHAT_ID = '-1004345602790';
@@ -1105,7 +1113,7 @@ async function checkAndSendAnalysis() {
     }
 }
 
-// ===== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК (С ПЕРЕЗАГРУЗКОЙ ДАННЫХ) =====
+// ===== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК =====
 function setupTabs() {
     const tabs = document.querySelectorAll('[data-tab]');
 
@@ -1118,14 +1126,12 @@ function setupTabs() {
 
             const tabName = this.dataset.tab;
 
-            // Скрываем все секции
             document.getElementById('cryptoSection').style.display = 'none';
             document.getElementById('newsSection').style.display = 'none';
             document.getElementById('altcoinSection').style.display = 'none';
             const blogSection = document.querySelector('.blog-section');
             if (blogSection) blogSection.style.display = 'none';
 
-            // Показываем нужную секцию и перезагружаем данные
             if (tabName === 'main') {
                 document.getElementById('cryptoSection').style.display = 'block';
                 document.getElementById('newsSection').style.display = 'block';
