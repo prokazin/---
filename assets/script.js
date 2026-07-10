@@ -49,18 +49,15 @@ try {
 }
 
 // ===== УМНЫЙ ЛИМИТ ПЕРЕВОДОВ =====
-const MAX_TRANSLATIONS_PER_DAY = 950; // Оставляем запас 50, чтобы точно не превысить 1000
+const MAX_TRANSLATIONS_PER_DAY = 950;
 
 function getTranslationStats() {
     const today = new Date().toISOString().split('T')[0];
     let stats = LS.get('translationStats') || {};
-    
-    // Если сегодня новый день — сбрасываем счётчик
     if (stats.date !== today) {
         stats = { date: today, count: 0 };
         LS.set('translationStats', stats);
     }
-    
     return stats;
 }
 
@@ -75,14 +72,11 @@ function getRemainingTranslations() {
     return Math.max(0, MAX_TRANSLATIONS_PER_DAY - stats.count);
 }
 
-// ===== ПЕРЕВОДЧИК: MYMEMORY (С УМНЫМ ЛИМИТОМ) =====
+// ===== ПЕРЕВОДЧИК =====
 async function translateToRussian(text) {
     if (!text) return 'Новость';
-    
-    // Проверяем, не на русском ли уже
     if (/[а-яА-Я]/.test(text)) return text;
     
-    // Проверяем, остались ли переводы
     const remaining = getRemainingTranslations();
     if (remaining <= 0) {
         console.warn(`⚠️ Лимит переводов исчерпан (${MAX_TRANSLATIONS_PER_DAY}/день). Возвращаем оригинал.`);
@@ -94,17 +88,14 @@ async function translateToRussian(text) {
             `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|ru`
         );
         const data = await response.json();
-        
         if (data.responseData && data.responseData.translatedText) {
-            // Увеличиваем счётчик только при успешном переводе
             incrementTranslationCount();
             return data.responseData.translatedText;
         }
     } catch (e) {
         console.warn('Ошибка перевода:', e);
     }
-    
-    return text; // Если перевод не удался, возвращаем оригинал
+    return text;
 }
 
 // ===== СПИСОК АЛЬТКОИНОВ =====
@@ -307,6 +298,126 @@ function isAltcoinNews(title) {
     return ALTCOIN_KEYWORDS.some(keyword => lowerTitle.includes(keyword));
 }
 
+// ===== ТРЕКИНГ РЕКЛАМЫ =====
+function trackAdShow(adId) {
+    if (!adId) return;
+    
+    let stats = LS.get('adStats') || {
+        totalShows: 0,
+        totalClicks: 0,
+        todayShows: 0,
+        todayClicks: 0,
+        todayDate: new Date().toISOString().split('T')[0]
+    };
+    
+    stats.totalShows = (stats.totalShows || 0) + 1;
+    
+    const today = new Date().toISOString().split('T')[0];
+    if (stats.todayDate !== today) {
+        stats.todayDate = today;
+        stats.todayShows = 0;
+        stats.todayClicks = 0;
+    }
+    stats.todayShows = (stats.todayShows || 0) + 1;
+    
+    LS.set('adStats', stats);
+    
+    let adStats = LS.get('adItemStats') || {};
+    if (!adStats[adId]) {
+        adStats[adId] = { shows: 0, clicks: 0, todayShows: 0, todayClicks: 0, lastDate: today };
+    }
+    adStats[adId].shows = (adStats[adId].shows || 0) + 1;
+    if (adStats[adId].lastDate !== today) {
+        adStats[adId].lastDate = today;
+        adStats[adId].todayShows = 0;
+        adStats[adId].todayClicks = 0;
+    }
+    adStats[adId].todayShows = (adStats[adId].todayShows || 0) + 1;
+    LS.set('adItemStats', adStats);
+}
+
+function trackAdClick(adId, isLink = false) {
+    if (!adId) return;
+    
+    let stats = LS.get('adStats') || {
+        totalShows: 0,
+        totalClicks: 0,
+        todayShows: 0,
+        todayClicks: 0,
+        todayDate: new Date().toISOString().split('T')[0]
+    };
+    
+    stats.totalClicks = (stats.totalClicks || 0) + 1;
+    
+    const today = new Date().toISOString().split('T')[0];
+    if (stats.todayDate !== today) {
+        stats.todayDate = today;
+        stats.todayShows = 0;
+        stats.todayClicks = 0;
+    }
+    stats.todayClicks = (stats.todayClicks || 0) + 1;
+    
+    LS.set('adStats', stats);
+    
+    let adStats = LS.get('adItemStats') || {};
+    if (!adStats[adId]) {
+        adStats[adId] = { shows: 0, clicks: 0, todayShows: 0, todayClicks: 0, lastDate: today };
+    }
+    adStats[adId].clicks = (adStats[adId].clicks || 0) + 1;
+    if (adStats[adId].lastDate !== today) {
+        adStats[adId].lastDate = today;
+        adStats[adId].todayShows = 0;
+        adStats[adId].todayClicks = 0;
+    }
+    adStats[adId].todayClicks = (adStats[adId].todayClicks || 0) + 1;
+    LS.set('adItemStats', adStats);
+    
+    console.log(`📊 Реклама ${adId}: клик!`);
+}
+
+// ===== ЗАГРУЗКА КРИПТОВАЛЮТ =====
+async function loadCrypto() {
+    const container = document.getElementById('cryptoContainer');
+    container.innerHTML = Array(12).fill(0).map(() =>
+        '<div class="skeleton" style="height:clamp(100px, 12vw, 130px);border-radius:12px;"></div>'
+    ).join('');
+
+    try {
+        const response = await fetch(
+            'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=12&page=1&sparkline=false'
+        );
+        const data = await response.json();
+        container.innerHTML = '';
+
+        data.forEach(coin => {
+            const change = coin.price_change_percentage_24h;
+            const changeClass = change >= 0 ? 'positive' : 'negative';
+            const changeSign = change >= 0 ? '+' : '';
+
+            const card = document.createElement('div');
+            card.className = 'crypto-card';
+            card.innerHTML = `
+                <div class="name">
+                    <img src="${coin.image}" alt="${coin.name}" loading="lazy" width="28" height="28" />
+                    ${coin.name}
+                    <span class="symbol">${coin.symbol.toUpperCase()}</span>
+                </div>
+                <div class="price">$${coin.current_price.toLocaleString()}</div>
+                <div class="change ${changeClass}">${changeSign}${change.toFixed(2)}%</div>
+            `;
+            container.appendChild(card);
+        });
+
+        document.getElementById('updateTime').textContent =
+            'Обновление: ' + new Date().toLocaleTimeString();
+
+    } catch (error) {
+        container.innerHTML =
+            '<p style="color:var(--red);grid-column:1/-1;text-align:center;">⚠️ Не удалось загрузить данные</p>';
+        console.error('Ошибка загрузки криптовалют:', error);
+    }
+}
+
 // ===== ЗАГРУЗКА НОВОСТЕЙ =====
 async function loadNews() {
     const container = document.getElementById('newsContainer');
@@ -352,7 +463,6 @@ async function loadNews() {
     const newTitles = displayNews.map(item => item.title);
     checkNewNews(newTitles);
 
-    // Расчёт: сколько новостей можно перевести
     const remaining = getRemainingTranslations();
     const maxTranslations = Math.min(displayNews.length, 6, remaining);
     const newsToTranslate = displayNews.slice(0, maxTranslations);
@@ -360,7 +470,6 @@ async function loadNews() {
     container.innerHTML = '';
     for (let i = 0; i < displayNews.length; i++) {
         const item = displayNews[i];
-        // Переводим только первые maxTranslations новостей
         const titleRu = i < maxTranslations ? await translateToRussian(item.title) : item.title;
 
         const card = document.createElement('div');
@@ -392,7 +501,6 @@ async function loadNews() {
         container.appendChild(card);
     }
 
-    // Отправляем в Telegram ТОЛЬКО переведённые новости
     const translatedNews = displayNews.slice(0, maxTranslations);
     await sendNewsToTelegram(translatedNews);
 }
@@ -443,7 +551,6 @@ async function loadAltcoinNews() {
     allNews = shuffleArray(allNews);
     const displayNews = allNews.slice(0, 10);
 
-    // Расчёт: сколько новостей можно перевести
     const remaining = getRemainingTranslations();
     const maxTranslations = Math.min(displayNews.length, 6, remaining);
     const newsToTranslate = displayNews.slice(0, maxTranslations);
@@ -571,15 +678,13 @@ function requestNotificationPermission() {
     }
 }
 
-// ===== ОТПРАВКА НОВОСТЕЙ В TELEGRAM =====
+// ===== ОТПРАВКА НОВОСТЕЙ В TELEGRAM (БЕЗ ССЫЛКИ НА САЙТ) =====
 async function sendNewsToTelegram(newsItems) {
     const BOT_TOKEN = '8422981212:AAFqUt5juqdC_l64q7FACOBw-mFL4f0hN8Y';
     const CHAT_ID = '-1004345602790';
 
-    // Загружаем уже отправленные заголовки
     let sentTitles = LS.get('sentTitles') || [];
     
-    // Фильтруем только новые
     const newItems = newsItems.filter(item => {
         const title = item.title || 'Новость';
         return !sentTitles.includes(title);
@@ -590,12 +695,10 @@ async function sendNewsToTelegram(newsItems) {
         return;
     }
 
-    // Обновляем историю
     const newTitles = newItems.map(item => item.title || 'Новость');
     sentTitles = [...sentTitles, ...newTitles];
     LS.set('sentTitles', sentTitles);
 
-    // Берём первые 3 новости для отправки (уже переведены)
     const toSend = newItems.slice(0, 3);
 
     try {
@@ -604,14 +707,12 @@ async function sendNewsToTelegram(newsItems) {
         for (const item of toSend) {
             const title = item.title || 'Новость';
             const url = item.url || '#';
-            // Переводим на русский перед отправкой (используем уже переведённый заголовок, если есть)
             const titleRu = await translateToRussian(title);
             message += `• [${titleRu}](${url})\n`;
             message += `   📌 ${item.source?.title || item.sourceName || 'Unknown'}\n\n`;
         }
         
-        message += `\n🔄 Обновлено: ${new Date().toLocaleString('ru-RU')}`;
-        message += `\n🔗 Открыть сайт: ${window.location.href}`;
+        message += `🔄 Обновлено: ${new Date().toLocaleString('ru-RU')}`;
 
         const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
         const response = await fetch(url, {
@@ -637,6 +738,35 @@ async function sendNewsToTelegram(newsItems) {
     }
 }
 
+// ===== ОТОБРАЖЕНИЕ РЕКЛАМЫ С ТРЕКИНГОМ =====
+function showAd(ads, index) {
+    const container = document.getElementById('adContainer');
+    const ad = ads[index];
+    if (!ad) return;
+
+    trackAdShow(ad.id);
+
+    let html = '<div class="ad-content" style="cursor:pointer;">';
+    
+    if (ad.type === 'image' && ad.url) {
+        html += `<img src="${ad.url}" alt="Реклама" loading="lazy" onclick="trackAdClick('${ad.id}')" />`;
+    } else if (ad.type === 'gif' && ad.url) {
+        html += `<img src="${ad.url}" alt="Реклама GIF" loading="lazy" style="max-height:200px;" onclick="trackAdClick('${ad.id}')" />`;
+    } else if (ad.type === 'video' && ad.url) {
+        html += `<video controls autoplay muted loop style="max-height:200px;border-radius:8px;" onclick="trackAdClick('${ad.id}')">
+                    <source src="${ad.url}" type="video/mp4">
+                    Ваш браузер не поддерживает видео
+                </video>`;
+    } else if (ad.type === 'link' && ad.link) {
+        html += `<a href="${ad.link}" target="_blank" rel="noopener" onclick="trackAdClick('${ad.id}', true)">${ad.text || 'Перейти по ссылке'}</a>`;
+    } else if (ad.type === 'html' && ad.text) {
+        html += ad.text;
+    }
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
 // ===== РЕКЛАМА =====
 function loadAd() {
     const container = document.getElementById('adContainer');
@@ -654,32 +784,6 @@ function loadAd() {
         currentAdIndex = (currentAdIndex + 1) % ads.length;
         showAd(ads, currentAdIndex);
     }, 30000);
-}
-
-function showAd(ads, index) {
-    const container = document.getElementById('adContainer');
-    const ad = ads[index];
-    if (!ad) return;
-
-    let html = '<div class="ad-content">';
-
-    if (ad.type === 'image' && ad.url) {
-        html += `<img src="${ad.url}" alt="Реклама" loading="lazy" />`;
-    } else if (ad.type === 'gif' && ad.url) {
-        html += `<img src="${ad.url}" alt="Реклама GIF" loading="lazy" style="max-height:200px;" />`;
-    } else if (ad.type === 'video' && ad.url) {
-        html += `<video controls autoplay muted loop style="max-height:200px;border-radius:8px;">
-                    <source src="${ad.url}" type="video/mp4">
-                    Ваш браузер не поддерживает видео
-                </video>`;
-    } else if (ad.type === 'link' && ad.url) {
-        html += `<a href="${ad.link}" target="_blank" rel="noopener">${ad.text || 'Перейти по ссылке'}</a>`;
-    } else if (ad.type === 'html' && ad.text) {
-        html += ad.text;
-    }
-
-    html += '</div>';
-    container.innerHTML = html;
 }
 
 // ===== ЭКСКЛЮЗИВНЫЕ МАТЕРИАЛЫ =====
@@ -934,7 +1038,7 @@ async function generateCryptoAnalysis() {
             analysis += `  • ${c.symbol}: $${c.price.toFixed(2)} (${sign}${c.change.toFixed(2)}%)\n`;
         });
 
-        analysis += `\n🔗 *Подробнее на сайте:* ${window.location.href}`;
+        analysis += `\n🔗 *Подробнее на сайте:* https://coindigestonline.ru`;
 
         return analysis;
     } catch (error) {
