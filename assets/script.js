@@ -48,6 +48,65 @@ try {
     console.log('ℹ️ Не Telegram окружение');
 }
 
+// ===== УМНЫЙ ЛИМИТ ПЕРЕВОДОВ =====
+const MAX_TRANSLATIONS_PER_DAY = 950; // Оставляем запас 50, чтобы точно не превысить 1000
+
+function getTranslationStats() {
+    const today = new Date().toISOString().split('T')[0];
+    let stats = LS.get('translationStats') || {};
+    
+    // Если сегодня новый день — сбрасываем счётчик
+    if (stats.date !== today) {
+        stats = { date: today, count: 0 };
+        LS.set('translationStats', stats);
+    }
+    
+    return stats;
+}
+
+function incrementTranslationCount() {
+    const stats = getTranslationStats();
+    stats.count++;
+    LS.set('translationStats', stats);
+}
+
+function getRemainingTranslations() {
+    const stats = getTranslationStats();
+    return Math.max(0, MAX_TRANSLATIONS_PER_DAY - stats.count);
+}
+
+// ===== ПЕРЕВОДЧИК: MYMEMORY (С УМНЫМ ЛИМИТОМ) =====
+async function translateToRussian(text) {
+    if (!text) return 'Новость';
+    
+    // Проверяем, не на русском ли уже
+    if (/[а-яА-Я]/.test(text)) return text;
+    
+    // Проверяем, остались ли переводы
+    const remaining = getRemainingTranslations();
+    if (remaining <= 0) {
+        console.warn(`⚠️ Лимит переводов исчерпан (${MAX_TRANSLATIONS_PER_DAY}/день). Возвращаем оригинал.`);
+        return text;
+    }
+    
+    try {
+        const response = await fetch(
+            `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|ru`
+        );
+        const data = await response.json();
+        
+        if (data.responseData && data.responseData.translatedText) {
+            // Увеличиваем счётчик только при успешном переводе
+            incrementTranslationCount();
+            return data.responseData.translatedText;
+        }
+    } catch (e) {
+        console.warn('Ошибка перевода:', e);
+    }
+    
+    return text; // Если перевод не удался, возвращаем оригинал
+}
+
 // ===== СПИСОК АЛЬТКОИНОВ =====
 const ALTCOIN_KEYWORDS = [
     'xrp', 'ripple', 'pepe', 'dogecoin', 'doge', 'solana', 'sol',
@@ -233,76 +292,6 @@ let pendingNotification = null;
 let adInterval = null;
 let currentAdIndex = 0;
 
-// ===== НОВЫЙ ПЕРЕВОДЧИК: LIBRETRANSLATE (БЕЗЛИМИТНЫЙ) =====
-async function translateToRussian(text) {
-    if (!text) return 'Новость';
-    // Убираем проверку на кириллицу, чтобы переводилось всё
-    try {
-        const response = await fetch(
-            `https://libretranslate.de/translate`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    q: text,
-                    source: 'en',
-                    target: 'ru',
-                    format: 'text'
-                })
-            }
-        );
-        const data = await response.json();
-        // Если перевод не удался, возвращаем оригинал
-        return data.translatedText || text;
-    } catch (e) {
-        console.warn('Ошибка перевода (LibreTranslate):', e);
-        return text;
-    }
-}
-
-// ===== ЗАГРУЗКА КРИПТОВАЛЮТ =====
-async function loadCrypto() {
-    const container = document.getElementById('cryptoContainer');
-    container.innerHTML = Array(12).fill(0).map(() =>
-        '<div class="skeleton" style="height:clamp(100px, 12vw, 130px);border-radius:12px;"></div>'
-    ).join('');
-
-    try {
-        const response = await fetch(
-            'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=12&page=1&sparkline=false'
-        );
-        const data = await response.json();
-        container.innerHTML = '';
-
-        data.forEach(coin => {
-            const change = coin.price_change_percentage_24h;
-            const changeClass = change >= 0 ? 'positive' : 'negative';
-            const changeSign = change >= 0 ? '+' : '';
-
-            const card = document.createElement('div');
-            card.className = 'crypto-card';
-            card.innerHTML = `
-                <div class="name">
-                    <img src="${coin.image}" alt="${coin.name}" loading="lazy" width="28" height="28" />
-                    ${coin.name}
-                    <span class="symbol">${coin.symbol.toUpperCase()}</span>
-                </div>
-                <div class="price">$${coin.current_price.toLocaleString()}</div>
-                <div class="change ${changeClass}">${changeSign}${change.toFixed(2)}%</div>
-            `;
-            container.appendChild(card);
-        });
-
-        document.getElementById('updateTime').textContent =
-            'Обновление: ' + new Date().toLocaleTimeString();
-
-    } catch (error) {
-        container.innerHTML =
-            '<p style="color:var(--red);grid-column:1/-1;text-align:center;">⚠️ Не удалось загрузить данные</p>';
-        console.error('Ошибка загрузки криптовалют:', error);
-    }
-}
-
 // ===== ОПТИМИЗАЦИЯ КАРТИНОК =====
 function optimizeImageUrl(url) {
     if (!url) return null;
@@ -363,9 +352,16 @@ async function loadNews() {
     const newTitles = displayNews.map(item => item.title);
     checkNewNews(newTitles);
 
+    // Расчёт: сколько новостей можно перевести
+    const remaining = getRemainingTranslations();
+    const maxTranslations = Math.min(displayNews.length, 6, remaining);
+    const newsToTranslate = displayNews.slice(0, maxTranslations);
+
     container.innerHTML = '';
-    for (const item of displayNews) {
-        const titleRu = await translateToRussian(item.title);
+    for (let i = 0; i < displayNews.length; i++) {
+        const item = displayNews[i];
+        // Переводим только первые maxTranslations новостей
+        const titleRu = i < maxTranslations ? await translateToRussian(item.title) : item.title;
 
         const card = document.createElement('div');
         card.className = 'news-card';
@@ -388,6 +384,7 @@ async function loadNews() {
                     ${item.published_at ? new Date(item.published_at).toLocaleDateString('ru-RU') : 'Сегодня'}
                 </span>
                 <span class="source-badge">${item.sourceName || ''}</span>
+                ${i >= maxTranslations ? '<span class="source-badge" style="background:#848e9c;color:#fff;">EN</span>' : ''}
             </div>
             ${thumbnailHtml}
             <h3><a href="${item.url}" target="_blank" rel="noopener">${titleRu}</a></h3>
@@ -395,8 +392,9 @@ async function loadNews() {
         container.appendChild(card);
     }
 
-    // ✅ Отправляем ВСЕ загруженные новости (без проверки на дубли)
-    await sendNewsToTelegram(displayNews);
+    // Отправляем в Telegram ТОЛЬКО переведённые новости
+    const translatedNews = displayNews.slice(0, maxTranslations);
+    await sendNewsToTelegram(translatedNews);
 }
 
 // ===== ЗАГРУЗКА НОВОСТЕЙ АЛЬТКОИНОВ =====
@@ -445,9 +443,15 @@ async function loadAltcoinNews() {
     allNews = shuffleArray(allNews);
     const displayNews = allNews.slice(0, 10);
 
+    // Расчёт: сколько новостей можно перевести
+    const remaining = getRemainingTranslations();
+    const maxTranslations = Math.min(displayNews.length, 6, remaining);
+    const newsToTranslate = displayNews.slice(0, maxTranslations);
+
     container.innerHTML = '';
-    for (const item of displayNews) {
-        const titleRu = await translateToRussian(item.title);
+    for (let i = 0; i < displayNews.length; i++) {
+        const item = displayNews[i];
+        const titleRu = i < maxTranslations ? await translateToRussian(item.title) : item.title;
 
         const card = document.createElement('div');
         card.className = 'news-card';
@@ -479,6 +483,7 @@ async function loadAltcoinNews() {
                     ${item.published_at ? new Date(item.published_at).toLocaleDateString('ru-RU') : 'Сегодня'}
                 </span>
                 <span class="source-badge">${item.sourceName || ''}</span>
+                ${i >= maxTranslations ? '<span class="source-badge" style="background:#848e9c;color:#fff;">EN</span>' : ''}
             </div>
             ${thumbnailHtml}
             <h3><a href="${item.url}" target="_blank" rel="noopener">${titleRu}</a></h3>
@@ -487,7 +492,7 @@ async function loadAltcoinNews() {
     }
 }
 
-// ===== ПРОВЕРКА НОВЫХ НОВОСТЕЙ (ДЛЯ УВЕДОМЛЕНИЙ НА САЙТЕ) =====
+// ===== ПРОВЕРКА НОВЫХ НОВОСТЕЙ =====
 function checkNewNews(newTitles) {
     if (lastNewsTitles.length === 0) {
         lastNewsTitles = newTitles;
@@ -566,31 +571,45 @@ function requestNotificationPermission() {
     }
 }
 
-// ===== ОТПРАВКА НОВОСТЕЙ В TELEGRAM (БЕЗ ПРОВЕРКИ НА ДУБЛИ) =====
+// ===== ОТПРАВКА НОВОСТЕЙ В TELEGRAM =====
 async function sendNewsToTelegram(newsItems) {
     const BOT_TOKEN = '8422981212:AAFqUt5juqdC_l64q7FACOBw-mFL4f0hN8Y';
     const CHAT_ID = '-1004345602790';
 
-    // Берем первые 3 новости из загруженных
-    const toSend = newsItems.slice(0, 3);
+    // Загружаем уже отправленные заголовки
+    let sentTitles = LS.get('sentTitles') || [];
+    
+    // Фильтруем только новые
+    const newItems = newsItems.filter(item => {
+        const title = item.title || 'Новость';
+        return !sentTitles.includes(title);
+    });
 
-    if (toSend.length === 0) {
-        console.log('ℹ️ Нет новостей для отправки');
+    if (newItems.length === 0) {
+        console.log('ℹ️ Новых новостей для Telegram нет');
         return;
     }
 
+    // Обновляем историю
+    const newTitles = newItems.map(item => item.title || 'Новость');
+    sentTitles = [...sentTitles, ...newTitles];
+    LS.set('sentTitles', sentTitles);
+
+    // Берём первые 3 новости для отправки (уже переведены)
+    const toSend = newItems.slice(0, 3);
+
     try {
         let message = '📰 *CoinDigest — Свежие новости*\n\n';
-
+        
         for (const item of toSend) {
             const title = item.title || 'Новость';
             const url = item.url || '#';
-            // Переводим на русский перед отправкой
+            // Переводим на русский перед отправкой (используем уже переведённый заголовок, если есть)
             const titleRu = await translateToRussian(title);
             message += `• [${titleRu}](${url})\n`;
             message += `   📌 ${item.source?.title || item.sourceName || 'Unknown'}\n\n`;
         }
-
+        
         message += `\n🔄 Обновлено: ${new Date().toLocaleString('ru-RU')}`;
         message += `\n🔗 Открыть сайт: ${window.location.href}`;
 
@@ -609,7 +628,7 @@ async function sendNewsToTelegram(newsItems) {
 
         const result = await response.json();
         if (result.ok) {
-            console.log(`✅ Отправлено ${toSend.length} новостей в канал`);
+            console.log(`✅ Отправлено ${toSend.length} новых новостей в канал`);
         } else {
             console.error('❌ Ошибка Telegram:', result.description);
         }
