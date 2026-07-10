@@ -72,7 +72,7 @@ function getRemainingTranslations() {
     return Math.max(0, MAX_TRANSLATIONS_PER_DAY - stats.count);
 }
 
-// ===== ПЕРЕВОДЧИК (ПОЛНОСТЬЮ БЕЗ ПРЕДУПРЕЖДЕНИЙ) =====
+// ===== ПЕРЕВОДЧИК =====
 async function translateToRussian(text) {
     if (!text) return 'Новость';
     if (/[а-яА-Я]/.test(text)) return text;
@@ -86,12 +86,9 @@ async function translateToRussian(text) {
         const response = await fetch(
             `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|ru`
         );
-        
-        // Получаем ответ как текст и парсим вручную
         const rawText = await response.text();
         const data = JSON.parse(rawText);
         
-        // Если есть предупреждение (403) или ошибка — просто возвращаем оригинал
         if (data.responseStatus === 403 || data.responseStatus === 429) {
             return text;
         }
@@ -517,7 +514,7 @@ async function loadNews() {
     await sendNewsToTelegram(newsForTelegram);
 }
 
-// ===== ЗАГРУЗКА НОВОСТЕЙ АЛЬТКОИНОВ =====
+// ===== ЗАГРУЗКА НОВОСТЕЙ АЛЬТКОИНОВ (ИСПРАВЛЕНО) =====
 async function loadAltcoinNews() {
     const container = document.getElementById('altcoinContainer');
     if (!container) return;
@@ -610,6 +607,12 @@ async function loadAltcoinNews() {
         `;
         container.appendChild(card);
     }
+
+    // ✅ ОТПРАВЛЯЕМ НОВОСТИ АЛЬТКОИНОВ В TELEGRAM
+    const newsForTelegram = maxTranslations > 0 
+        ? displayNews.slice(0, maxTranslations) 
+        : displayNews.slice(0, 3);
+    await sendAltcoinNewsToTelegram(newsForTelegram);
 }
 
 // ===== ПРОВЕРКА НОВЫХ НОВОСТЕЙ =====
@@ -691,7 +694,7 @@ function requestNotificationPermission() {
     }
 }
 
-// ===== ОТПРАВКА НОВОСТЕЙ В TELEGRAM =====
+// ===== ОТПРАВКА ОСНОВНЫХ НОВОСТЕЙ В TELEGRAM =====
 async function sendNewsToTelegram(newsItems) {
     const BOT_TOKEN = '8422981212:AAFqUt5juqdC_l64q7FACOBw-mFL4f0hN8Y';
     const CHAT_ID = '-1004345602790';
@@ -704,7 +707,7 @@ async function sendNewsToTelegram(newsItems) {
     });
 
     if (newItems.length === 0) {
-        console.log('ℹ️ Новых новостей для Telegram нет');
+        console.log('ℹ️ Новых основных новостей для Telegram нет');
         return;
     }
 
@@ -742,7 +745,67 @@ async function sendNewsToTelegram(newsItems) {
 
         const result = await response.json();
         if (result.ok) {
-            console.log(`✅ Отправлено ${toSend.length} новых новостей в канал`);
+            console.log(`✅ Отправлено ${toSend.length} основных новостей в канал`);
+        } else {
+            console.error('❌ Ошибка Telegram:', result.description);
+        }
+    } catch (error) {
+        console.error('❌ Ошибка отправки в Telegram:', error);
+    }
+}
+
+// ===== ОТПРАВКА НОВОСТЕЙ АЛЬТКОИНОВ В TELEGRAM (НОВАЯ ФУНКЦИЯ) =====
+async function sendAltcoinNewsToTelegram(newsItems) {
+    const BOT_TOKEN = '8422981212:AAFqUt5juqdC_l64q7FACOBw-mFL4f0hN8Y';
+    const CHAT_ID = '-1004345602790';
+
+    let sentAltcoinTitles = LS.get('sentAltcoinTitles') || [];
+    
+    const newItems = newsItems.filter(item => {
+        const title = item.title || 'Новость';
+        return !sentAltcoinTitles.includes(title);
+    });
+
+    if (newItems.length === 0) {
+        console.log('ℹ️ Новых новостей альткоинов для Telegram нет');
+        return;
+    }
+
+    const newTitles = newItems.map(item => item.title || 'Новость');
+    sentAltcoinTitles = [...sentAltcoinTitles, ...newTitles];
+    LS.set('sentAltcoinTitles', sentAltcoinTitles);
+
+    const toSend = newItems.slice(0, 3);
+
+    try {
+        let message = '🪙 *CoinDigest — Новости альткоинов*\n\n';
+        
+        for (const item of toSend) {
+            const title = item.title || 'Новость';
+            const url = item.url || '#';
+            const titleRu = await translateToRussian(title);
+            message += `• [${titleRu}](${url})\n`;
+            message += `   📌 ${item.source?.title || item.sourceName || 'Unknown'}\n\n`;
+        }
+        
+        message += `🔄 Обновлено: ${new Date().toLocaleString('ru-RU')}`;
+
+        const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: CHAT_ID,
+                text: message,
+                parse_mode: 'Markdown',
+                disable_web_page_preview: true,
+                disable_notification: false
+            })
+        });
+
+        const result = await response.json();
+        if (result.ok) {
+            console.log(`✅ Отправлено ${toSend.length} новостей альткоинов в канал`);
         } else {
             console.error('❌ Ошибка Telegram:', result.description);
         }
