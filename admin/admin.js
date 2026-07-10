@@ -326,43 +326,41 @@ function editAd(index) {
 
 // ===== СТАТИСТИКА (ИСПРАВЛЕНА) =====
 function updateStats() {
-    // ===== ОБЩИЕ ПОСЕЩЕНИЯ =====
-    let visits = LS.get('visits') || 0;
-    document.getElementById('visits').textContent = visits;
-
-    // ===== ПОСЕЩЕНИЯ ЗА СЕГОДНЯ =====
+    // ===== ИНИЦИАЛИЗАЦИЯ, ЕСЛИ ПУСТО =====
+    if (!LS.get('visits')) {
+        LS.set('visits', 0);
+    }
+    
     const todayKey = new Date().toISOString().split('T')[0];
     let todayStats = LS.get('todayStats') || {};
-    
-    // Если сегодня новый день — сбрасываем счётчик
     if (todayStats.date !== todayKey) {
         todayStats = { date: todayKey, count: 0 };
+        LS.set('todayStats', todayStats);
     }
-    document.getElementById('todayVisits').textContent = todayStats.count || 0;
-
-    // ===== ПОСЕЩЕНИЯ ЗА НЕДЕЛЮ =====
+    
     const weekKey = getWeekKey();
     let weekStats = LS.get('weekStats') || {};
-    
-    // Если началась новая неделя — сбрасываем счётчик
     if (weekStats.week !== weekKey) {
         weekStats = { week: weekKey, count: 0 };
+        LS.set('weekStats', weekStats);
     }
+
+    // ===== ОБНОВЛЕНИЕ ОТОБРАЖЕНИЯ =====
+    const visits = LS.get('visits') || 0;
+    document.getElementById('visits').textContent = visits;
+
+    document.getElementById('todayVisits').textContent = todayStats.count || 0;
     document.getElementById('weekVisits').textContent = weekStats.count || 0;
 
-    // ===== ПОСТЫ =====
     const posts = LS.get('posts') || [];
     document.getElementById('postsCount').textContent = posts.length;
 
-    // ===== ЭКСКЛЮЗИВЫ =====
     const exclusive = posts.filter(p => p.isExclusive === true);
     document.getElementById('exclusiveCount').textContent = exclusive.length;
 
-    // ===== ПОСЛЕДНИЙ ПОСТ =====
     const lastUpdateEl = document.getElementById('lastUpdate');
     if (lastUpdateEl) {
         if (posts.length > 0) {
-            // Сортируем по дате и берём последний
             const sorted = [...posts].sort((a, b) => new Date(b.date) - new Date(a.date));
             lastUpdateEl.textContent = sorted[0].date || '-';
         } else {
@@ -371,7 +369,6 @@ function updateStats() {
     }
 }
 
-// ===== ВСПОМОГАТЕЛЬНАЯ: НОМЕР НЕДЕЛИ =====
 function getWeekKey() {
     const now = new Date();
     const start = new Date(now);
@@ -437,25 +434,6 @@ function showToast(message, type = 'success', extra = '') {
 }
 
 // ===== ЗАПУСК =====
-// Инициализация хранилища, если пусто
-if (!LS.get('visits')) {
-    LS.set('visits', 0);
-}
-
-// Инициализация дневной статистики
-const todayKey = new Date().toISOString().split('T')[0];
-let todayStats = LS.get('todayStats') || {};
-if (todayStats.date !== todayKey) {
-    LS.set('todayStats', { date: todayKey, count: 0 });
-}
-
-// Инициализация недельной статистики
-const weekKey = getWeekKey();
-let weekStats = LS.get('weekStats') || {};
-if (weekStats.week !== weekKey) {
-    LS.set('weekStats', { week: weekKey, count: 0 });
-}
-
 checkAuth();
 
 const styleToast = document.createElement('style');
