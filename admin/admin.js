@@ -80,7 +80,7 @@ function renderAdmin() {
             <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Выйти</button>
         </h1>
 
-        <!-- СТАТИСТИКА -->
+        <!-- СТАТИСТИКА ПОСЕЩЕНИЙ -->
         <div class="stat-grid">
             <div class="stat-card">
                 <div class="number" id="visits">0</div>
@@ -114,8 +114,53 @@ function renderAdmin() {
             </div>
         </div>
 
-        <!-- РЕКЛАМА -->
-        <div class="section-title"><i class="fas fa-ad"></i> Управление рекламой</div>
+        <!-- СТАТИСТИКА РЕКЛАМЫ -->
+        <div class="section-title"><i class="fas fa-chart-bar"></i> Статистика рекламы</div>
+        <div class="stat-grid" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+            <div class="stat-card">
+                <div class="number" id="adTotalShows">0</div>
+                <div class="label">👁️ Всего показов</div>
+                <div class="sub">За всё время</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="adTotalClicks">0</div>
+                <div class="label">🖱️ Всего кликов</div>
+                <div class="sub">За всё время</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="adTodayShows">0</div>
+                <div class="label">📊 Показов сегодня</div>
+                <div class="sub">За текущий день</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="adTodayClicks">0</div>
+                <div class="label">📊 Кликов сегодня</div>
+                <div class="sub">За текущий день</div>
+            </div>
+        </div>
+
+        <!-- ТАБЛИЦА СТАТИСТИКИ ПО КАЖДОЙ РЕКЛАМЕ -->
+        <div class="section-title" style="margin-top:8px;font-size:15px;">📋 Детальная статистика по объявлениям</div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Название</th>
+                        <th style="text-align:center;">Тип</th>
+                        <th style="text-align:center;">👁️ Показов</th>
+                        <th style="text-align:center;">🖱️ Кликов</th>
+                        <th style="text-align:center;">CTR</th>
+                        <th style="text-align:center;">📅 Сегодня</th>
+                    </tr>
+                </thead>
+                <tbody id="adStatsBody">
+                    <tr><td colspan="6" style="text-align:center;padding:20px;color:#848e9c;">Загрузка...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- УПРАВЛЕНИЕ РЕКЛАМОЙ -->
+        <div class="section-title" style="margin-top:30px;"><i class="fas fa-ad"></i> Управление рекламой</div>
         <p style="color:#848e9c;font-size:13px;margin-bottom:12px;">
             Добавляйте баннеры, GIF, видео или ссылки. Реклама будет показываться на сайте с ротацией каждые 30 секунд.
         </p>
@@ -158,6 +203,7 @@ function renderAdmin() {
     initAdminFunctions();
     updateStats();
     loadAds();
+    updateAdStats();
 }
 
 // ===== ИНИЦИАЛИЗАЦИЯ ФОРМ =====
@@ -246,7 +292,7 @@ function addAd() {
 
     const ads = LS.get('ads') || [];
     const newAd = {
-        id: Date.now(),
+        id: Date.now().toString(36) + Math.random().toString(36).substr(2, 4),
         type: type,
         name: name,
         url: url,
@@ -260,6 +306,7 @@ function addAd() {
     
     document.getElementById('adForm').reset();
     loadAds();
+    updateAdStats();
     showToast('✅ Реклама добавлена!');
 }
 
@@ -301,6 +348,7 @@ function deleteAd(index) {
     ads.splice(index, 1);
     LS.set('ads', ads);
     loadAds();
+    updateAdStats();
     showToast('🗑️ Реклама удалена');
 }
 
@@ -312,11 +360,11 @@ function editAd(index) {
 
     let preview = '';
     if (ad.type === 'image' || ad.type === 'gif') {
-        preview = `<img src="${ad.url}" alt="${ad.name}" />`;
+        preview = `<img src="${ad.url}" alt="${ad.name}" style="max-width:100%;max-height:200px;border-radius:4px;" />`;
     } else if (ad.type === 'video') {
-        preview = `<video controls autoplay muted loop><source src="${ad.url}" type="video/mp4"></video>`;
+        preview = `<video controls autoplay muted loop style="max-width:100%;max-height:200px;border-radius:4px;"><source src="${ad.url}" type="video/mp4"></video>`;
     } else if (ad.type === 'link') {
-        preview = `<a href="${ad.link}" target="_blank" style="color:#f0b90b;">${ad.text || ad.link}</a>`;
+        preview = `<a href="${ad.link}" target="_blank" style="color:#f0b90b;font-size:16px;">${ad.text || ad.link}</a>`;
     } else if (ad.type === 'html') {
         preview = ad.text;
     }
@@ -324,12 +372,10 @@ function editAd(index) {
     showToast(`📺 ${ad.name}`, 'preview', preview);
 }
 
-// ===== СТАТИСТИКА (ИСПРАВЛЕНА) =====
+// ===== СТАТИСТИКА ПОСЕЩЕНИЙ =====
 function updateStats() {
-    // ===== ИНИЦИАЛИЗАЦИЯ, ЕСЛИ ПУСТО =====
-    if (!LS.get('visits')) {
-        LS.set('visits', 0);
-    }
+    // Инициализация
+    if (!LS.get('visits')) LS.set('visits', 0);
     
     const todayKey = new Date().toISOString().split('T')[0];
     let todayStats = LS.get('todayStats') || {};
@@ -345,18 +391,14 @@ function updateStats() {
         LS.set('weekStats', weekStats);
     }
 
-    // ===== ОБНОВЛЕНИЕ ОТОБРАЖЕНИЯ =====
-    const visits = LS.get('visits') || 0;
-    document.getElementById('visits').textContent = visits;
-
+    // Отображение
+    document.getElementById('visits').textContent = LS.get('visits') || 0;
     document.getElementById('todayVisits').textContent = todayStats.count || 0;
     document.getElementById('weekVisits').textContent = weekStats.count || 0;
 
     const posts = LS.get('posts') || [];
     document.getElementById('postsCount').textContent = posts.length;
-
-    const exclusive = posts.filter(p => p.isExclusive === true);
-    document.getElementById('exclusiveCount').textContent = exclusive.length;
+    document.getElementById('exclusiveCount').textContent = posts.filter(p => p.isExclusive === true).length;
 
     const lastUpdateEl = document.getElementById('lastUpdate');
     if (lastUpdateEl) {
@@ -374,6 +416,54 @@ function getWeekKey() {
     const start = new Date(now);
     start.setDate(now.getDate() - now.getDay());
     return start.toISOString().split('T')[0];
+}
+
+// ===== СТАТИСТИКА РЕКЛАМЫ =====
+function updateAdStats() {
+    const stats = LS.get('adStats') || {
+        totalShows: 0,
+        totalClicks: 0,
+        todayShows: 0,
+        todayClicks: 0,
+        todayDate: new Date().toISOString().split('T')[0]
+    };
+    
+    document.getElementById('adTotalShows').textContent = stats.totalShows || 0;
+    document.getElementById('adTotalClicks').textContent = stats.totalClicks || 0;
+    document.getElementById('adTodayShows').textContent = stats.todayShows || 0;
+    document.getElementById('adTodayClicks').textContent = stats.todayClicks || 0;
+    
+    // Таблица по каждому объявлению
+    const ads = LS.get('ads') || [];
+    const adStats = LS.get('adItemStats') || {};
+    const tbody = document.getElementById('adStatsBody');
+    
+    if (!tbody) return;
+    
+    if (ads.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#848e9c;">Реклама не добавлена</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = '';
+    ads.forEach(ad => {
+        const itemStats = adStats[ad.id] || { shows: 0, clicks: 0, todayShows: 0, todayClicks: 0 };
+        const ctr = itemStats.shows > 0 ? ((itemStats.clicks / itemStats.shows) * 100).toFixed(1) : '0.0';
+        const ctrClass = parseFloat(ctr) > 5 ? 'ctr-high' : parseFloat(ctr) > 1 ? 'ctr-mid' : 'ctr-low';
+        
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${ad.name}</strong></td>
+            <td style="text-align:center;color:#848e9c;">${ad.type}</td>
+            <td style="text-align:center;color:#f0b90b;">${itemStats.shows || 0}</td>
+            <td style="text-align:center;color:#0ecb81;">${itemStats.clicks || 0}</td>
+            <td style="text-align:center;font-weight:600;" class="${ctrClass}">${ctr}%</td>
+            <td style="text-align:center;color:#848e9c;font-size:12px;">
+                👁️ ${itemStats.todayShows || 0} / 🖱️ ${itemStats.todayClicks || 0}
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
 }
 
 // ===== ТОСТ-УВЕДОМЛЕНИЕ =====
@@ -421,7 +511,7 @@ function showToast(message, type = 'success', extra = '') {
             toast.style.transform = 'translateX(-50%) translateY(20px)';
             toast.style.transition = 'opacity 0.3s, transform 0.3s';
             setTimeout(() => toast.remove(), 300);
-        }, 2500);
+        }, 3000);
     } else {
         toast.style.cursor = 'pointer';
         toast.onclick = function() {
