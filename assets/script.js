@@ -233,7 +233,7 @@ let pendingNotification = null;
 let adInterval = null;
 let currentAdIndex = 0;
 
-// ===== ПЕРЕВОДЧИК: MYMEMORY (С ЛИМИТОМ) =====
+// ===== ПЕРЕВОДЧИК: MYMEMORY =====
 async function translateToRussian(text) {
     if (!text) return 'Новость';
     if (/[а-яА-Я]/.test(text)) return text;
@@ -387,6 +387,9 @@ async function loadNews() {
         `;
         container.appendChild(card);
     }
+
+    // ✅ Отправляем в Telegram через правильную функцию
+    await sendNewNewsToTelegram(displayNews);
 }
 
 // ===== ЗАГРУЗКА НОВОСТЕЙ АЛЬТКОИНОВ =====
@@ -553,6 +556,72 @@ function requestNotificationPermission() {
         });
     } else if ('Notification' in window && Notification.permission === 'granted') {
         notificationEnabled = true;
+    }
+}
+
+// ===== ОТПРАВКА НОВОСТЕЙ В TELEGRAM (ПРАВИЛЬНАЯ ВЕРСИЯ) =====
+async function sendNewNewsToTelegram(newsItems) {
+    const BOT_TOKEN = '8422981212:AAFqUt5juqdC_l64q7FACOBw-mFL4f0hN8Y';
+    const CHAT_ID = '-1004345602790';
+
+    // Загружаем уже отправленные заголовки
+    let sentTitles = LS.get('sentTitles') || [];
+    
+    // Фильтруем только новые
+    const newItems = newsItems.filter(item => {
+        const title = item.title || 'Новость';
+        return !sentTitles.includes(title);
+    });
+
+    if (newItems.length === 0) {
+        console.log('ℹ️ Новых новостей для Telegram нет');
+        return;
+    }
+
+    // Обновляем историю
+    const newTitles = newItems.map(item => item.title || 'Новость');
+    sentTitles = [...sentTitles, ...newTitles];
+    LS.set('sentTitles', sentTitles);
+
+    // Берём первые 3 новости для отправки
+    const toSend = newItems.slice(0, 3);
+
+    try {
+        let message = '📰 *CoinDigest — Свежие новости*\n\n';
+        
+        for (const item of toSend) {
+            const title = item.title || 'Новость';
+            const url = item.url || '#';
+            // Переводим на русский перед отправкой
+            const titleRu = await translateToRussian(title);
+            message += `• [${titleRu}](${url})\n`;
+            message += `   📌 ${item.source?.title || item.sourceName || 'Unknown'}\n\n`;
+        }
+        
+        message += `\n🔄 Обновлено: ${new Date().toLocaleString('ru-RU')}`;
+        message += `\n🔗 Открыть сайт: ${window.location.href}`;
+
+        const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: CHAT_ID,
+                text: message,
+                parse_mode: 'Markdown',
+                disable_web_page_preview: true,
+                disable_notification: false
+            })
+        });
+
+        const result = await response.json();
+        if (result.ok) {
+            console.log(`✅ Отправлено ${toSend.length} новых новостей в канал`);
+        } else {
+            console.error('❌ Ошибка Telegram:', result.description);
+        }
+    } catch (error) {
+        console.error('❌ Ошибка отправки в Telegram:', error);
     }
 }
 
