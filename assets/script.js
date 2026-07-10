@@ -282,6 +282,7 @@ let notificationEnabled = false;
 let pendingNotification = null;
 let adInterval = null;
 let currentAdIndex = 0;
+let isLoading = false;
 
 // ===== ОПТИМИЗАЦИЯ КАРТИНОК =====
 function optimizeImageUrl(url) {
@@ -465,7 +466,6 @@ async function loadNews() {
 
     const remaining = getRemainingTranslations();
     const maxTranslations = Math.min(displayNews.length, 6, remaining);
-    const newsToTranslate = displayNews.slice(0, maxTranslations);
 
     container.innerHTML = '';
     for (let i = 0; i < displayNews.length; i++) {
@@ -553,7 +553,6 @@ async function loadAltcoinNews() {
 
     const remaining = getRemainingTranslations();
     const maxTranslations = Math.min(displayNews.length, 6, remaining);
-    const newsToTranslate = displayNews.slice(0, maxTranslations);
 
     container.innerHTML = '';
     for (let i = 0; i < displayNews.length; i++) {
@@ -678,7 +677,7 @@ function requestNotificationPermission() {
     }
 }
 
-// ===== ОТПРАВКА НОВОСТЕЙ В TELEGRAM (БЕЗ ССЫЛКИ НА САЙТ) =====
+// ===== ОТПРАВКА НОВОСТЕЙ В TELEGRAM =====
 async function sendNewsToTelegram(newsItems) {
     const BOT_TOKEN = '8422981212:AAFqUt5juqdC_l64q7FACOBw-mFL4f0hN8Y';
     const CHAT_ID = '-1004345602790';
@@ -1105,7 +1104,7 @@ async function checkAndSendAnalysis() {
     }
 }
 
-// ===== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК =====
+// ===== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК (ИСПРАВЛЕНО) =====
 function setupTabs() {
     const tabs = document.querySelectorAll('[data-tab]');
 
@@ -1118,30 +1117,31 @@ function setupTabs() {
 
             const tabName = this.dataset.tab;
 
+            // Скрываем все секции
+            document.getElementById('cryptoSection').style.display = 'none';
+            document.getElementById('newsSection').style.display = 'none';
+            document.getElementById('altcoinSection').style.display = 'none';
+            const blogSection = document.querySelector('.blog-section');
+            if (blogSection) blogSection.style.display = 'none';
+
+            // Показываем нужную секцию и перезагружаем данные
             if (tabName === 'main') {
                 document.getElementById('cryptoSection').style.display = 'block';
                 document.getElementById('newsSection').style.display = 'block';
-                document.getElementById('altcoinSection').style.display = 'none';
-                document.querySelector('.blog-section').style.display = 'block';
+                if (blogSection) blogSection.style.display = 'block';
+                // Перезагружаем данные
+                loadCrypto();
+                loadNews();
+                loadExclusivePosts();
             } else if (tabName === 'crypto') {
                 document.getElementById('cryptoSection').style.display = 'block';
-                document.getElementById('newsSection').style.display = 'none';
-                document.getElementById('altcoinSection').style.display = 'none';
-                document.querySelector('.blog-section').style.display = 'none';
+                loadCrypto();
             } else if (tabName === 'news') {
-                document.getElementById('cryptoSection').style.display = 'none';
                 document.getElementById('newsSection').style.display = 'block';
-                document.getElementById('altcoinSection').style.display = 'none';
-                document.querySelector('.blog-section').style.display = 'none';
+                loadNews();
             } else if (tabName === 'altcoins') {
-                document.getElementById('cryptoSection').style.display = 'none';
-                document.getElementById('newsSection').style.display = 'none';
                 document.getElementById('altcoinSection').style.display = 'block';
-                document.querySelector('.blog-section').style.display = 'none';
-
-                if (document.getElementById('altcoinContainer').children.length <= 1) {
-                    loadAltcoinNews();
-                }
+                loadAltcoinNews();
             }
         });
     });
