@@ -514,7 +514,7 @@ async function loadNews() {
     await sendNewsToTelegram(newsForTelegram);
 }
 
-// ===== ЗАГРУЗКА НОВОСТЕЙ АЛЬТКОИНОВ (ИСПРАВЛЕНО) =====
+// ===== ЗАГРУЗКА НОВОСТЕЙ АЛЬТКОИНОВ =====
 async function loadAltcoinNews() {
     const container = document.getElementById('altcoinContainer');
     if (!container) return;
@@ -608,7 +608,6 @@ async function loadAltcoinNews() {
         container.appendChild(card);
     }
 
-    // ✅ ОТПРАВЛЯЕМ НОВОСТИ АЛЬТКОИНОВ В TELEGRAM
     const newsForTelegram = maxTranslations > 0 
         ? displayNews.slice(0, maxTranslations) 
         : displayNews.slice(0, 3);
@@ -754,7 +753,7 @@ async function sendNewsToTelegram(newsItems) {
     }
 }
 
-// ===== ОТПРАВКА НОВОСТЕЙ АЛЬТКОИНОВ В TELEGRAM (НОВАЯ ФУНКЦИЯ) =====
+// ===== ОТПРАВКА НОВОСТЕЙ АЛЬТКОИНОВ В TELEGRAM =====
 async function sendAltcoinNewsToTelegram(newsItems) {
     const BOT_TOKEN = '8422981212:AAFqUt5juqdC_l64q7FACOBw-mFL4f0hN8Y';
     const CHAT_ID = '-1004345602790';
@@ -1154,27 +1153,29 @@ async function sendAnalysisToTelegram(analysis) {
     }
 }
 
+// ===== ПРОВЕРКА И ОТПРАВКА АНАЛИЗА (РАСШИРЕННОЕ ОКНО 2 ЧАСА) =====
 async function checkAndSendAnalysis() {
     const now = new Date();
     const hours = now.getHours();
-    const minutes = now.getMinutes();
     const dateKey = now.toISOString().split('T')[0];
 
-    if (hours === 9 && minutes < 5) {
+    // УТРЕННИЙ АНАЛИЗ: окно с 9:00 до 11:00 (2 часа)
+    if (hours >= 9 && hours < 11) {
         const key = `morning_${dateKey}`;
-        if (LS.get(key)) return;
+        if (LS.get(key)) return; // Уже отправлено сегодня
         LS.set(key, true);
-
+        
         console.log('📊 Генерируем утренний анализ...');
         const analysis = await generateCryptoAnalysis();
         await sendAnalysisToTelegram(analysis);
     }
 
-    if (hours === 21 && minutes < 5) {
+    // ВЕЧЕРНИЙ АНАЛИЗ: окно с 21:00 до 23:00 (2 часа)
+    if (hours >= 21 && hours < 23) {
         const key = `evening_${dateKey}`;
-        if (LS.get(key)) return;
+        if (LS.get(key)) return; // Уже отправлено сегодня
         LS.set(key, true);
-
+        
         console.log('📊 Генерируем вечерний анализ...');
         const analysis = await generateCryptoAnalysis();
         await sendAnalysisToTelegram(analysis);
