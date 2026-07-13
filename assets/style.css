@@ -1,4 +1,7 @@
+/* ============================================ */
 /* ===== ГЛОБАЛЬНЫЕ НАСТРОЙКИ ===== */
+/* ============================================ */
+
 * {
     margin: 0;
     padding: 0;
@@ -58,7 +61,10 @@ img {
     padding: 0 16px;
 }
 
+/* ============================================ */
 /* ===== GLASS ===== */
+/* ============================================ */
+
 .glass {
     background: var(--bg-card);
     backdrop-filter: blur(var(--glass-blur));
@@ -66,7 +72,10 @@ img {
     border: 1px solid var(--border);
 }
 
+/* ============================================ */
 /* ===== ШАПКА ===== */
+/* ============================================ */
+
 .header {
     padding: 10px 0;
     border-bottom: 2px solid rgba(240, 185, 11, 0.3);
@@ -139,7 +148,10 @@ img {
     background: var(--bg-hover);
 }
 
+/* ============================================ */
 /* ===== МОБИЛЬНОЕ МЕНЮ ===== */
+/* ============================================ */
+
 .mobile-menu {
     display: none;
     padding: 8px 16px;
@@ -178,7 +190,10 @@ img {
     color: var(--accent);
 }
 
+/* ============================================ */
 /* ===== ВКЛАДКИ ===== */
+/* ============================================ */
+
 .tabs-bar {
     background: rgba(11, 14, 17, 0.6);
     backdrop-filter: blur(16px);
@@ -263,7 +278,10 @@ img {
     }
 }
 
+/* ============================================ */
 /* ===== БАННЕР ===== */
+/* ============================================ */
+
 .banner {
     padding: clamp(20px, 4vw, 48px) 0;
     border-bottom: 1px solid var(--border);
@@ -289,7 +307,10 @@ img {
     margin-top: 6px;
 }
 
+/* ============================================ */
 /* ===== РЕКЛАМА ===== */
+/* ============================================ */
+
 .ad-section {
     padding: clamp(8px, 1.5vw, 16px) 0;
 }
@@ -315,7 +336,10 @@ img {
     object-fit: cover;
 }
 
+/* ============================================ */
 /* ===== КОНТЕНТ ===== */
+/* ============================================ */
+
 .content-section {
     padding: clamp(16px, 2vw, 24px) 0;
 }
@@ -374,7 +398,10 @@ img {
     -webkit-backdrop-filter: blur(10px);
 }
 
+/* ============================================ */
 /* ===== КРИПТОВАЛЮТЫ ===== */
+/* ============================================ */
+
 .crypto-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(clamp(140px, 18vw, 220px), 1fr));
@@ -473,7 +500,10 @@ img {
     background: var(--red-bg);
 }
 
+/* ============================================ */
 /* ===== НОВОСТИ ===== */
+/* ============================================ */
+
 .news-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(clamp(240px, 28vw, 320px), 1fr));
@@ -532,7 +562,10 @@ img {
     color: var(--accent);
 }
 
+/* ============================================ */
 /* ===== ЭКСКЛЮЗИВНЫЕ МАТЕРИАЛЫ ===== */
+/* ============================================ */
+
 .posts-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(clamp(240px, 28vw, 320px), 1fr));
@@ -583,7 +616,10 @@ img {
     line-height: 1.5;
 }
 
+/* ============================================ */
 /* ===== КАЛЕНДАРЬ ===== */
+/* ============================================ */
+
 .calendar-container {
     display: grid;
     grid-template-columns: 1fr;
@@ -676,7 +712,10 @@ img {
     display: block;
 }
 
+/* ============================================ */
 /* ===== ПОДВАЛ ===== */
+/* ============================================ */
+
 .footer {
     padding: clamp(20px, 3vw, 40px) 0 clamp(12px, 1.5vw, 20px);
     border-top: 1px solid var(--border);
@@ -738,7 +777,10 @@ img {
     font-size: clamp(10px, 0.8vw, 13px);
 }
 
+/* ============================================ */
 /* ===== УВЕДОМЛЕНИЯ ===== */
+/* ============================================ */
+
 .notification-banner {
     position: fixed;
     bottom: clamp(12px, 2vw, 30px);
@@ -802,7 +844,10 @@ img {
     }
 }
 
+/* ============================================ */
 /* ===== SKELETON ===== */
+/* ============================================ */
+
 .skeleton {
     background: linear-gradient(90deg, rgba(30, 35, 41, 0.6) 25%, rgba(45, 50, 58, 0.8) 50%, rgba(30, 35, 41, 0.6) 75%);
     background-size: 200% 100%;
@@ -815,7 +860,10 @@ img {
     100% { background-position: 200% 0; }
 }
 
+/* ============================================ */
 /* ===== SCROLLBAR ===== */
+/* ============================================ */
+
 ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -834,7 +882,10 @@ img {
     background: var(--accent);
 }
 
+/* ============================================ */
 /* ===== АДАПТИВНОСТЬ ===== */
+/* ============================================ */
+
 @media (max-width: 1024px) {
     .footer-grid {
         grid-template-columns: repeat(2, 1fr);
@@ -922,5 +973,64 @@ img {
     }
     .crypto-container {
         grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    }
+}
+
+/* ============================================ */
+/* ===== ПЛАВАЮЩАЯ КНОПКА TELEGRAM ===== */
+/* ============================================ */
+
+.tg-float-btn {
+    position: fixed;
+    bottom: 30px;
+    left: 30px;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    background: #0088cc;
+    color: #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 4px 20px rgba(0, 136, 204, 0.4);
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    text-decoration: none;
+    font-size: 28px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.tg-float-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 30px rgba(0, 136, 204, 0.6);
+    background: #0099e6;
+    color: #ffffff;
+}
+
+.tg-float-btn:active {
+    transform: scale(0.95);
+}
+
+.tg-float-btn i {
+    margin-right: 2px;
+}
+
+@media (max-width: 768px) {
+    .tg-float-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 22px;
+        bottom: 20px;
+        left: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .tg-float-btn {
+        width: 44px;
+        height: 44px;
+        font-size: 18px;
+        bottom: 16px;
+        left: 16px;
     }
 }
