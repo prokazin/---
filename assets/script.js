@@ -511,8 +511,7 @@ async function loadNews() {
         container.appendChild(card);
     }
 
-    // Отправляем новые новости в Telegram
-    await sendNewNewsToTelegram(displayNews);
+    await sendNewsToTelegram(displayNews.slice(0, 3));
 }
 
 // ===== ЗАГРУЗКА НОВОСТЕЙ АЛЬТКОИНОВ =====
@@ -610,28 +609,17 @@ async function loadAltcoinNews() {
     }
 }
 
-// ===== ОТПРАВКА НОВЫХ НОВОСТЕЙ В TELEGRAM =====
-async function sendNewNewsToTelegram(newsItems) {
+// ===== ОТПРАВКА НОВОСТЕЙ В TELEGRAM =====
+async function sendNewsToTelegram(newsItems) {
     const BOT_TOKEN = '8422981212:AAFqUt5juqdC_l64q7FACOBw-mFL4f0hN8Y';
     const CHAT_ID = '-1004345602790';
 
-    let sentTitles = LS.get('sentTitles') || [];
-    
-    const newItems = newsItems.filter(item => {
-        const title = item.title || 'Новость';
-        return !sentTitles.includes(title);
-    });
-
-    if (newItems.length === 0) {
-        console.log('ℹ️ Новых новостей для Telegram нет');
+    if (!newsItems || newsItems.length === 0) {
+        console.log('ℹ️ Нет новостей для отправки');
         return;
     }
 
-    const newTitles = newItems.map(item => item.title || 'Новость');
-    sentTitles = [...sentTitles, ...newTitles];
-    LS.set('sentTitles', sentTitles);
-
-    const toSend = newItems.slice(0, 3);
+    const toSend = newsItems.slice(0, 3);
 
     try {
         let message = '📰 *CoinDigest — Свежие новости*\n\n';
@@ -661,7 +649,7 @@ async function sendNewNewsToTelegram(newsItems) {
 
         const result = await response.json();
         if (result.ok) {
-            console.log(`✅ Отправлено ${toSend.length} новых новостей в канал`);
+            console.log(`✅ Отправлено ${toSend.length} новостей в канал`);
         } else {
             console.error('❌ Ошибка Telegram:', result.description);
         }
@@ -745,7 +733,6 @@ async function loadCalendar() {
             if (dateStr === tomorrowStr) tomorrowEvents.push(event);
         });
 
-        // Отправляем календарь в Telegram
         await sendCalendarToTelegram(todayEvents, tomorrowEvents);
 
     } catch (error) {
@@ -807,7 +794,6 @@ async function sendCalendarToTelegram(todayEvents, tomorrowEvents) {
     const todayKey = new Date().toISOString().split('T')[0];
     const sentKey = `calendar_sent_${todayKey}`;
     
-    // Проверяем, отправляли ли уже сегодня
     if (LS.get(sentKey)) {
         console.log('ℹ️ Календарь уже отправлен сегодня');
         return;
@@ -995,36 +981,10 @@ function requestNotificationPermission() {
     }
 }
 
-// ===== ОТОБРАЖЕНИЕ РЕКЛАМЫ =====
-function showAd(ads, index) {
-    const container = document.getElementById('adContainer');
-    const ad = ads[index];
-    if (!ad) return;
+// ============================================
+// ===== РЕКЛАМА (ИСПРАВЛЕНА) =====
+// ============================================
 
-    trackAdShow(ad.id);
-
-    let html = '<div class="ad-content" style="cursor:pointer;">';
-    
-    if (ad.type === 'image' && ad.url) {
-        html += `<img src="${ad.url}" alt="Реклама" loading="lazy" onclick="trackAdClick('${ad.id}')" />`;
-    } else if (ad.type === 'gif' && ad.url) {
-        html += `<img src="${ad.url}" alt="Реклама GIF" loading="lazy" style="max-height:200px;" onclick="trackAdClick('${ad.id}')" />`;
-    } else if (ad.type === 'video' && ad.url) {
-        html += `<video controls autoplay muted loop style="max-height:200px;border-radius:8px;" onclick="trackAdClick('${ad.id}')">
-                    <source src="${ad.url}" type="video/mp4">
-                    Ваш браузер не поддерживает видео
-                </video>`;
-    } else if (ad.type === 'link' && ad.link) {
-        html += `<a href="${ad.link}" target="_blank" rel="noopener" onclick="trackAdClick('${ad.id}', true)">${ad.text || 'Перейти по ссылке'}</a>`;
-    } else if (ad.type === 'html' && ad.text) {
-        html += ad.text;
-    }
-    
-    html += '</div>';
-    container.innerHTML = html;
-}
-
-// ===== РЕКЛАМА =====
 function loadAd() {
     const container = document.getElementById('adContainer');
     const ads = LS.get('ads') || [];
@@ -1041,6 +1001,41 @@ function loadAd() {
         currentAdIndex = (currentAdIndex + 1) % ads.length;
         showAd(ads, currentAdIndex);
     }, 30000);
+}
+
+function showAd(ads, index) {
+    const container = document.getElementById('adContainer');
+    const ad = ads[index];
+    if (!ad) return;
+
+    // Увеличиваем счётчик показов
+    trackAdShow(ad.id);
+
+    let html = '<div class="ad-content">';
+    
+    if (ad.type === 'image' || ad.type === 'gif') {
+        html += `<img src="${ad.url}" alt="${ad.name || 'Реклама'}" loading="lazy" style="max-width:100%;border-radius:8px;cursor:pointer;" onclick="trackAdClick('${ad.id}')" />`;
+        if (ad.text) {
+            html += `<div style="margin-top:6px;font-size:14px;color:var(--text-secondary);text-align:center;">${ad.text}</div>`;
+        }
+    } else if (ad.type === 'video') {
+        html += `<video controls autoplay muted loop style="max-width:100%;max-height:200px;border-radius:8px;cursor:pointer;" onclick="trackAdClick('${ad.id}')">
+                    <source src="${ad.url}" type="video/mp4">
+                    Ваш браузер не поддерживает видео
+                </video>`;
+        if (ad.text) {
+            html += `<div style="margin-top:6px;font-size:14px;color:var(--text-secondary);text-align:center;">${ad.text}</div>`;
+        }
+    } else if (ad.type === 'link') {
+        html += `<a href="${ad.link}" target="_blank" rel="noopener" style="display:inline-block;padding:12px 24px;background:var(--accent);color:#0b0e11;border-radius:8px;font-weight:600;text-decoration:none;transition:opacity 0.3s;" onclick="trackAdClick('${ad.id}', true)">
+                    ${ad.text || 'Перейти по ссылке'}
+                </a>`;
+    } else if (ad.type === 'html') {
+        html += ad.text;
+    }
+    
+    html += '</div>';
+    container.innerHTML = html;
 }
 
 // ===== ЭКСКЛЮЗИВНЫЕ МАТЕРИАЛЫ =====
@@ -1170,8 +1165,16 @@ function shuffleArray(array) {
 }
 
 // ============================================
-// ===== AI-АНАЛИЗ КРИПТОРЫНКА =====
+// ===== AI-АНАЛИЗ КРИПТОРЫНКА (МОСКОВСКОЕ ВРЕМЯ) =====
 // ============================================
+
+function getMoscowTime() {
+    const now = new Date();
+    const offset = now.getTimezoneOffset();
+    const moscowOffset = -180;
+    const diff = moscowOffset - offset;
+    return new Date(now.getTime() + diff * 60000);
+}
 
 async function generateCryptoAnalysis() {
     try {
@@ -1246,8 +1249,9 @@ async function generateCryptoAnalysis() {
             sentimentEmoji = '😰';
         }
 
-        const timeOfDay = new Date().getHours() < 12 ? 'утренний' : 'вечерний';
-        const dateStr = new Date().toLocaleDateString('ru-RU');
+        const moscowNow = getMoscowTime();
+        const timeOfDay = moscowNow.getHours() < 12 ? 'утренний' : 'вечерний';
+        const dateStr = moscowNow.toLocaleDateString('ru-RU');
 
         const sortedByChange = [...priceChanges].sort((a, b) => b.change - a.change);
         const topGainers = sortedByChange.slice(0, 3).filter(c => c.change > 0);
@@ -1336,16 +1340,16 @@ async function sendAnalysisToTelegram(analysis) {
 }
 
 async function checkAndSendAnalysis() {
-    const now = new Date();
-    const hours = now.getHours();
-    const dateKey = now.toISOString().split('T')[0];
+    const moscowNow = getMoscowTime();
+    const hours = moscowNow.getHours();
+    const dateKey = moscowNow.toISOString().split('T')[0];
 
     if (hours >= 9 && hours < 11) {
         const key = `morning_${dateKey}`;
         if (LS.get(key)) return;
         LS.set(key, true);
         
-        console.log('📊 Генерируем утренний анализ...');
+        console.log('📊 Генерируем утренний анализ (Москва)...');
         const analysis = await generateCryptoAnalysis();
         await sendAnalysisToTelegram(analysis);
     }
@@ -1355,7 +1359,7 @@ async function checkAndSendAnalysis() {
         if (LS.get(key)) return;
         LS.set(key, true);
         
-        console.log('📊 Генерируем вечерний анализ...');
+        console.log('📊 Генерируем вечерний анализ (Москва)...');
         const analysis = await generateCryptoAnalysis();
         await sendAnalysisToTelegram(analysis);
     }
