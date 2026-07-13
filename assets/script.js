@@ -1,926 +1,1303 @@
-/* ===== ГЛОБАЛЬНЫЕ НАСТРОЙКИ ===== */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+// ===== ПРЕФИКС ДЛЯ LOCALSTORAGE =====
+const STORAGE_PREFIX = 'coindigest_';
+const LS = {
+    get: (key) => JSON.parse(localStorage.getItem(STORAGE_PREFIX + key)),
+    set: (key, val) => localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(val)),
+};
 
-:root {
-    --bg-primary: #0b0e11;
-    --bg-secondary: #1a1d23;
-    --bg-card: rgba(30, 35, 41, 0.7);
-    --bg-hover: rgba(45, 50, 58, 0.8);
-    --text-primary: #eaecef;
-    --text-secondary: #848e9c;
-    --accent: #f0b90b;
-    --accent-hover: #d4a00a;
-    --green: #0ecb81;
-    --green-bg: rgba(14, 203, 129, 0.15);
-    --red: #f6465d;
-    --red-bg: rgba(246, 70, 93, 0.15);
-    --border: rgba(255, 255, 255, 0.06);
-    --shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    --radius: 12px;
-    --radius-sm: 8px;
-    --transition: 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --max-width: 1280px;
-    --header-height: 60px;
-    --glass-blur: 20px;
-}
+// ===== СБОР СТАТИСТИКИ =====
+function trackVisit() {
+    let visits = LS.get('visits') || 0;
+    visits++;
+    LS.set('visits', visits);
 
-html {
-    scroll-behavior: smooth;
-    -webkit-text-size-adjust: 100%;
-    -webkit-tap-highlight-color: transparent;
-}
-
-body {
-    font-family: var(--font);
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    line-height: 1.5;
-    min-height: 100vh;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    overflow-x: hidden;
-}
-
-img {
-    max-width: 100%;
-    height: auto;
-    display: block;
-}
-
-.container {
-    max-width: var(--max-width);
-    margin: 0 auto;
-    padding: 0 16px;
-}
-
-/* ===== GLASS ===== */
-.glass {
-    background: var(--bg-card);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    border: 1px solid var(--border);
-}
-
-/* ===== ШАПКА ===== */
-.header {
-    padding: 10px 0;
-    border-bottom: 2px solid rgba(240, 185, 11, 0.3);
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    height: var(--header-height);
-    display: flex;
-    align-items: center;
-    background: rgba(11, 14, 17, 0.85);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-}
-
-.header .container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    gap: 8px;
-}
-
-.logo {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: clamp(16px, 2.5vw, 22px);
-    font-weight: 800;
-    color: var(--accent);
-    cursor: default;
-    flex-shrink: 0;
-}
-
-.logo i {
-    font-size: clamp(18px, 2.5vw, 26px);
-}
-
-.header-right {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.last-update {
-    font-size: clamp(10px, 0.9vw, 12px);
-    color: var(--text-secondary);
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.last-update i {
-    font-size: clamp(10px, 0.9vw, 12px);
-}
-
-.mobile-menu-btn {
-    display: none;
-    background: none;
-    border: none;
-    color: var(--text-primary);
-    font-size: clamp(20px, 3vw, 24px);
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: var(--radius-sm);
-    transition: var(--transition);
-}
-
-.mobile-menu-btn:hover {
-    background: var(--bg-hover);
-}
-
-/* ===== МОБИЛЬНОЕ МЕНЮ ===== */
-.mobile-menu {
-    display: none;
-    padding: 8px 16px;
-    flex-direction: column;
-    gap: 4px;
-    background: rgba(11, 14, 17, 0.95);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--border);
-}
-
-.mobile-menu.open {
-    display: flex;
-}
-
-.mobile-menu a {
-    color: var(--text-secondary);
-    text-decoration: none;
-    padding: 10px 14px;
-    border-radius: var(--radius-sm);
-    font-size: clamp(14px, 2vw, 16px);
-    font-weight: 500;
-    transition: var(--transition);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.mobile-menu a:hover,
-.mobile-menu a.active {
-    color: var(--text-primary);
-    background: var(--bg-hover);
-}
-
-.mobile-menu a.active {
-    color: var(--accent);
-}
-
-/* ===== ВКЛАДКИ (WINDOWS 11 СТИЛЬ) ===== */
-.tabs-bar {
-    background: rgba(11, 14, 17, 0.6);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-bottom: 1px solid var(--border);
-    padding: 6px 0;
-    position: sticky;
-    top: var(--header-height);
-    z-index: 999;
-}
-
-.tabs-wrapper {
-    display: flex;
-    gap: 6px;
-    overflow-x: auto;
-    padding: 4px 0;
-    scrollbar-width: none;
-    justify-content: center;
-}
-
-.tabs-wrapper::-webkit-scrollbar {
-    display: none;
-}
-
-.tab-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    padding: 8px 24px;
-    border-radius: var(--radius-sm);
-    font-size: 14px;
-    font-weight: 500;
-    font-family: var(--font);
-    cursor: pointer;
-    transition: var(--transition);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    white-space: nowrap;
-    min-width: 120px;
-    justify-content: center;
-}
-
-.tab-btn:hover {
-    background: rgba(255, 255, 255, 0.04);
-    color: var(--text-primary);
-}
-
-.tab-btn.active {
-    background: rgba(240, 185, 11, 0.12);
-    color: var(--accent);
-    box-shadow: 0 0 20px rgba(240, 185, 11, 0.05);
-}
-
-.tab-btn i {
-    font-size: 16px;
-}
-
-@media (max-width: 768px) {
-    .tabs-wrapper {
-        justify-content: flex-start;
-        padding: 0 4px;
+    const todayKey = new Date().toISOString().split('T')[0];
+    let todayStats = LS.get('todayStats') || {};
+    if (todayStats.date !== todayKey) {
+        todayStats = { date: todayKey, count: 0 };
     }
-    .tab-btn {
-        padding: 6px 14px;
-        font-size: 13px;
-        min-width: auto;
+    todayStats.count++;
+    LS.set('todayStats', todayStats);
+
+    const weekKey = getWeekKey();
+    let weekStats = LS.get('weekStats') || {};
+    if (weekStats.week !== weekKey) {
+        weekStats = { week: weekKey, count: 0 };
     }
-    .tab-btn i {
-        font-size: 14px;
+    weekStats.count++;
+    LS.set('weekStats', weekStats);
+}
+
+function getWeekKey() {
+    const now = new Date();
+    const start = new Date(now);
+    start.setDate(now.getDate() - now.getDay());
+    return start.toISOString().split('T')[0];
+}
+
+// ===== TELEGRAM MINI APP =====
+let tgApp = null;
+try {
+    if (window.Telegram && window.Telegram.WebApp) {
+        tgApp = window.Telegram.WebApp;
+        tgApp.ready();
+        document.body.classList.add('tg-app');
+        console.log('✅ Telegram Mini App инициализирован');
     }
+} catch (e) {
+    console.log('ℹ️ Не Telegram окружение');
 }
 
-@media (max-width: 480px) {
-    .tab-btn {
-        padding: 6px 10px;
-        font-size: 12px;
-        gap: 4px;
+// ===== УМНЫЙ ЛИМИТ ПЕРЕВОДОВ =====
+const MAX_TRANSLATIONS_PER_DAY = 950;
+
+function getTranslationStats() {
+    const today = new Date().toISOString().split('T')[0];
+    let stats = LS.get('translationStats') || {};
+    if (stats.date !== today) {
+        stats = { date: today, count: 0 };
+        LS.set('translationStats', stats);
     }
-    .tab-btn i {
-        font-size: 12px;
+    return stats;
+}
+
+function incrementTranslationCount() {
+    const stats = getTranslationStats();
+    stats.count++;
+    LS.set('translationStats', stats);
+}
+
+function getRemainingTranslations() {
+    const stats = getTranslationStats();
+    return Math.max(0, MAX_TRANSLATIONS_PER_DAY - stats.count);
+}
+
+// ===== ПЕРЕВОДЧИК =====
+async function translateToRussian(text) {
+    if (!text) return 'Новость';
+    if (/[а-яА-Я]/.test(text)) return text;
+    
+    const remaining = getRemainingTranslations();
+    if (remaining <= 0) {
+        return text;
     }
-}
-
-/* ===== БАННЕР ===== */
-.banner {
-    padding: clamp(16px, 3vw, 40px) 0;
-    border-bottom: 1px solid var(--border);
-    text-align: center;
-    background: rgba(11, 14, 17, 0.5);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-}
-
-.banner h1 {
-    font-size: clamp(20px, 4vw, 38px);
-    font-weight: 800;
-    line-height: 1.2;
-}
-
-.banner h1 span {
-    color: var(--accent);
-}
-
-.banner p {
-    font-size: clamp(14px, 1.5vw, 18px);
-    color: var(--text-secondary);
-    margin-top: 4px;
-}
-
-/* ===== РЕКЛАМА ===== */
-.ad-section {
-    padding: clamp(8px, 1.5vw, 16px) 0;
-}
-
-.ad-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 50px;
-    padding: 8px 16px;
-    border-radius: var(--radius);
-    background: rgba(30, 35, 41, 0.4);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid var(--border);
-}
-
-.ad-container .ad-content img,
-.ad-container .ad-content video {
-    max-width: 100%;
-    max-height: 160px;
-    border-radius: var(--radius-sm);
-    object-fit: cover;
-}
-
-/* ===== КОНТЕНТ ===== */
-.content-section {
-    padding: clamp(16px, 2vw, 24px) 0;
-}
-
-.tab-content {
-    display: none;
-    animation: fadeIn 0.4s ease;
-}
-
-.tab-content.active {
-    display: block;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(12px);
+    
+    try {
+        const response = await fetch(
+            `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|ru`
+        );
+        const rawText = await response.text();
+        const data = JSON.parse(rawText);
+        
+        if (data.responseStatus === 403 || data.responseStatus === 429) {
+            return text;
+        }
+        
+        if (data.responseData && data.responseData.translatedText) {
+            incrementTranslationCount();
+            return data.responseData.translatedText;
+        }
+    } catch (e) {
+        console.debug('Ошибка перевода (не критично):', e.message);
     }
-    to {
-        opacity: 1;
-        transform: translateY(0);
+    return text;
+}
+
+// ===== СПИСОК АЛЬТКОИНОВ =====
+const ALTCOIN_KEYWORDS = [
+    'xrp', 'ripple', 'pepe', 'dogecoin', 'doge', 'solana', 'sol',
+    'cardano', 'ada', 'polygon', 'matic', 'shiba', 'shib', 'avalanche', 'avax',
+    'chainlink', 'link', 'polkadot', 'dot', 'litecoin', 'ltc',
+    'uniswap', 'uni', 'cosmos', 'atom', 'stellar', 'xlm', 'vechain', 'vet',
+    'algorand', 'algo', 'filecoin', 'fil', 'theta', 'near', 'flow', 'hedera', 'hbar',
+    'quant', 'qnt', 'elrond', 'egld', 'arbitrum', 'arb',
+    'optimism', 'op', 'aptos', 'apt', 'sui', 'sei', 'injective', 'inj'
+];
+
+// ===== ИСТОЧНИКИ НОВОСТЕЙ =====
+const NEWS_SOURCES = [
+    {
+        name: 'CoinDesk (RSS)',
+        url: 'https://api.rss2json.com/v1/api.json?rss_url=https://www.coindesk.com/feed',
+        parser: (data) => {
+            if (!data || !data.items) return [];
+            return data.items.map(item => ({
+                title: item.title,
+                url: item.link,
+                source: { title: 'CoinDesk' },
+                published_at: item.pubDate || new Date().toISOString(),
+                thumbnail: item.thumbnail || null
+            }));
+        },
+        limit: 3
+    },
+    {
+        name: 'Cointelegraph (RSS)',
+        url: 'https://api.rss2json.com/v1/api.json?rss_url=https://cointelegraph.com/feed',
+        parser: (data) => {
+            if (!data || !data.items) return [];
+            return data.items.map(item => ({
+                title: item.title,
+                url: item.link,
+                source: { title: 'Cointelegraph' },
+                published_at: item.pubDate || new Date().toISOString(),
+                thumbnail: item.thumbnail || null
+            }));
+        },
+        limit: 3
+    },
+    {
+        name: 'CryptoPotato (RSS)',
+        url: 'https://api.rss2json.com/v1/api.json?rss_url=https://cryptopotato.com/feed',
+        parser: (data) => {
+            if (!data || !data.items) return [];
+            return data.items.map(item => ({
+                title: item.title,
+                url: item.link,
+                source: { title: 'CryptoPotato' },
+                published_at: item.pubDate || new Date().toISOString(),
+                thumbnail: item.thumbnail || null
+            }));
+        },
+        limit: 2
+    },
+    {
+        name: 'Bitcoin.com (RSS)',
+        url: 'https://api.rss2json.com/v1/api.json?rss_url=https://news.bitcoin.com/feed',
+        parser: (data) => {
+            if (!data || !data.items) return [];
+            return data.items.map(item => ({
+                title: item.title,
+                url: item.link,
+                source: { title: 'Bitcoin.com' },
+                published_at: item.pubDate || new Date().toISOString(),
+                thumbnail: item.thumbnail || null
+            }));
+        },
+        limit: 2
     }
-}
+];
 
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 16px;
-}
-
-.section-header h2 {
-    font-size: clamp(16px, 2.5vw, 24px);
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--text-primary);
-}
-
-.section-header h2 i {
-    color: var(--accent);
-    font-size: clamp(14px, 2vw, 20px);
-}
-
-.section-subtitle {
-    font-size: clamp(10px, 1vw, 14px);
-    color: var(--text-secondary);
-    background: rgba(30, 35, 41, 0.6);
-    padding: 4px 14px;
-    border-radius: 20px;
-    border: 1px solid var(--border);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-}
-
-/* ===== КРИПТОВАЛЮТЫ ===== */
-.crypto-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(clamp(140px, 18vw, 220px), 1fr));
-    gap: clamp(10px, 1.5vw, 16px);
-}
-
-.crypto-card {
-    background: rgba(30, 35, 41, 0.6);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    padding: clamp(14px, 1.5vw, 20px);
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-    transition: var(--transition);
-    cursor: default;
-    animation: fadeInUp 0.5s ease forwards;
-    opacity: 0;
-}
-
-.crypto-card:nth-child(1) { animation-delay: 0.04s; }
-.crypto-card:nth-child(2) { animation-delay: 0.08s; }
-.crypto-card:nth-child(3) { animation-delay: 0.12s; }
-.crypto-card:nth-child(4) { animation-delay: 0.16s; }
-.crypto-card:nth-child(5) { animation-delay: 0.20s; }
-.crypto-card:nth-child(6) { animation-delay: 0.24s; }
-.crypto-card:nth-child(7) { animation-delay: 0.28s; }
-.crypto-card:nth-child(8) { animation-delay: 0.32s; }
-.crypto-card:nth-child(9) { animation-delay: 0.36s; }
-.crypto-card:nth-child(10) { animation-delay: 0.40s; }
-.crypto-card:nth-child(11) { animation-delay: 0.44s; }
-.crypto-card:nth-child(12) { animation-delay: 0.48s; }
-
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(15px);
+// ===== РАСШИРЕННЫЕ ИСТОЧНИКИ ДЛЯ АЛЬТКОИНОВ =====
+const ALTCOIN_SOURCES = [
+    {
+        name: 'Altcoin Daily',
+        url: 'https://api.rss2json.com/v1/api.json?rss_url=https://altcoindaily.io/feed',
+        parser: (data) => {
+            if (!data || !data.items) return [];
+            return data.items.map(item => ({
+                title: item.title,
+                url: item.link,
+                source: { title: 'Altcoin Daily' },
+                published_at: item.pubDate || new Date().toISOString(),
+                thumbnail: item.thumbnail || null
+            }));
+        },
+        limit: 2
+    },
+    {
+        name: 'CoinGape',
+        url: 'https://api.rss2json.com/v1/api.json?rss_url=https://coingape.com/feed',
+        parser: (data) => {
+            if (!data || !data.items) return [];
+            return data.items.map(item => ({
+                title: item.title,
+                url: item.link,
+                source: { title: 'CoinGape' },
+                published_at: item.pubDate || new Date().toISOString(),
+                thumbnail: item.thumbnail || null
+            }));
+        },
+        limit: 2
+    },
+    {
+        name: 'CryptoNews',
+        url: 'https://api.rss2json.com/v1/api.json?rss_url=https://cryptonews.com/news/altcoins/feed',
+        parser: (data) => {
+            if (!data || !data.items) return [];
+            return data.items.map(item => ({
+                title: item.title,
+                url: item.link,
+                source: { title: 'CryptoNews' },
+                published_at: item.pubDate || new Date().toISOString(),
+                thumbnail: item.thumbnail || null
+            }));
+        },
+        limit: 2
+    },
+    {
+        name: 'U.Today',
+        url: 'https://api.rss2json.com/v1/api.json?rss_url=https://u.today/rss',
+        parser: (data) => {
+            if (!data || !data.items) return [];
+            return data.items.map(item => ({
+                title: item.title,
+                url: item.link,
+                source: { title: 'U.Today' },
+                published_at: item.pubDate || new Date().toISOString(),
+                thumbnail: item.thumbnail || null
+            }));
+        },
+        limit: 2
+    },
+    {
+        name: 'Reddit Altcoins',
+        url: 'https://www.reddit.com/r/CryptoCurrency/.json?limit=10',
+        parser: (data) => {
+            if (!data || !data.data || !data.data.children) return [];
+            return data.data.children.map(child => ({
+                title: child.data.title,
+                url: 'https://reddit.com' + child.data.permalink,
+                source: { title: 'Reddit' },
+                published_at: new Date(child.data.created_utc * 1000).toISOString(),
+                thumbnail: child.data.thumbnail && child.data.thumbnail.startsWith('http') ? child.data.thumbnail : null
+            }));
+        },
+        limit: 4
+    },
+    {
+        name: 'Reddit AltStreetBets',
+        url: 'https://www.reddit.com/r/AltStreetBets/.json?limit=8',
+        parser: (data) => {
+            if (!data || !data.data || !data.data.children) return [];
+            return data.data.children.map(child => ({
+                title: child.data.title,
+                url: 'https://reddit.com' + child.data.permalink,
+                source: { title: 'Reddit AltStreetBets' },
+                published_at: new Date(child.data.created_utc * 1000).toISOString(),
+                thumbnail: child.data.thumbnail && child.data.thumbnail.startsWith('http') ? child.data.thumbnail : null
+            }));
+        },
+        limit: 3
     }
-    to {
-        opacity: 1;
-        transform: translateY(0);
+];
+
+// ===== ЭКСКЛЮЗИВНЫЕ КЛЮЧЕВЫЕ СЛОВА =====
+const EXCLUSIVE_KEYWORDS = [
+    'эксклюзив', 'инсайд', 'аналитика', 'прогноз', 'отчет',
+    'анализ', 'тенденция', 'рынок', 'инвестиции', 'стратегия',
+    'exclusive', 'insight', 'analysis', 'forecast', 'report',
+    'trend', 'market', 'investment', 'strategy'
+];
+
+// ===== ПЕРЕМЕННЫЕ =====
+let lastNewsTitles = [];
+let lastAltcoinTitles = [];
+let notificationEnabled = false;
+let pendingNotification = null;
+let adInterval = null;
+let currentAdIndex = 0;
+
+// ===== ОПТИМИЗАЦИЯ КАРТИНОК =====
+function optimizeImageUrl(url) {
+    if (!url) return null;
+    if (url.includes('reddit.com') && url.includes('?format=')) {
+        return url.replace('?format=png', '?format=webp');
     }
+    return url;
 }
 
-.crypto-card:hover {
-    transform: translateY(-4px);
-    border-color: var(--accent);
-    box-shadow: var(--shadow);
+// ===== ПРОВЕРКА НА АЛЬТКОИН =====
+function isAltcoinNews(title) {
+    const lowerTitle = title.toLowerCase();
+    return ALTCOIN_KEYWORDS.some(keyword => lowerTitle.includes(keyword));
 }
 
-.crypto-card .name {
-    font-size: clamp(13px, 1.2vw, 16px);
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 6px;
-}
-
-.crypto-card .name img {
-    width: clamp(22px, 2vw, 28px);
-    height: clamp(22px, 2vw, 28px);
-    border-radius: 50%;
-    flex-shrink: 0;
-    object-fit: contain;
-}
-
-.crypto-card .symbol {
-    color: var(--text-secondary);
-    font-weight: 400;
-    font-size: clamp(10px, 0.9vw, 13px);
-    margin-left: auto;
-    text-transform: uppercase;
-}
-
-.crypto-card .price {
-    font-size: clamp(18px, 2vw, 26px);
-    font-weight: 700;
-    margin: 4px 0 6px;
-}
-
-.crypto-card .change {
-    font-size: clamp(12px, 1vw, 14px);
-    font-weight: 600;
-    padding: 3px 10px;
-    border-radius: 6px;
-    display: inline-block;
-}
-
-.change.positive {
-    color: var(--green);
-    background: var(--green-bg);
-}
-
-.change.negative {
-    color: var(--red);
-    background: var(--red-bg);
-}
-
-/* ===== НОВОСТИ ===== */
-.news-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(clamp(240px, 28vw, 320px), 1fr));
-    gap: clamp(10px, 1.5vw, 16px);
-}
-
-.news-card {
-    background: rgba(30, 35, 41, 0.6);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    padding: clamp(12px, 1.5vw, 18px);
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-    transition: var(--transition);
-    cursor: pointer;
-}
-
-.news-card:hover {
-    border-color: var(--accent);
-    transform: translateY(-3px);
-    box-shadow: var(--shadow);
-}
-
-.news-card .news-source {
-    font-size: clamp(10px, 0.9vw, 12px);
-    color: var(--text-secondary);
-    margin-bottom: 6px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-}
-
-.news-card .news-source .source-badge {
-    background: rgba(240, 185, 11, 0.15);
-    color: var(--accent);
-    font-size: clamp(8px, 0.7vw, 10px);
-    padding: 2px 10px;
-    border-radius: 12px;
-    font-weight: 600;
-}
-
-.news-card h3 {
-    font-size: clamp(13px, 1.2vw, 16px);
-    line-height: 1.4;
-    font-weight: 600;
-}
-
-.news-card h3 a {
-    color: var(--text-primary);
-    text-decoration: none;
-    transition: var(--transition);
-}
-
-.news-card h3 a:hover {
-    color: var(--accent);
-}
-
-/* ===== ЭКСКЛЮЗИВНЫЕ МАТЕРИАЛЫ ===== */
-.posts-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(clamp(240px, 28vw, 320px), 1fr));
-    gap: clamp(10px, 1.5vw, 16px);
-}
-
-.post-card {
-    background: rgba(30, 35, 41, 0.6);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    padding: clamp(14px, 1.5vw, 20px);
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-    border-left: 4px solid var(--accent);
-    transition: var(--transition);
-}
-
-.post-card:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow);
-}
-
-.post-card h3 {
-    font-size: clamp(14px, 1.3vw, 17px);
-    font-weight: 600;
-    margin-bottom: 4px;
-    line-height: 1.3;
-}
-
-.post-card h3 a {
-    color: var(--text-primary);
-    text-decoration: none;
-}
-
-.post-card h3 a:hover {
-    color: var(--accent);
-}
-
-.post-card .date {
-    font-size: clamp(10px, 0.8vw, 12px);
-    color: var(--text-secondary);
-    margin-bottom: 6px;
-}
-
-.post-card p {
-    color: var(--text-secondary);
-    font-size: clamp(12px, 0.9vw, 14px);
-    line-height: 1.5;
-}
-
-/* ===== КАЛЕНДАРЬ ===== */
-.calendar-container {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 12px;
-}
-
-.calendar-event {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    background: rgba(30, 35, 41, 0.6);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    padding: 14px 20px;
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-    transition: var(--transition);
-}
-
-.calendar-event:hover {
-    border-color: var(--accent);
-    transform: translateX(4px);
-    box-shadow: var(--shadow);
-}
-
-.calendar-event .event-date {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-width: 50px;
-    color: var(--accent);
-    font-weight: 700;
-    font-size: 20px;
-    line-height: 1.2;
-}
-
-.calendar-event .event-date .month {
-    font-size: 10px;
-    text-transform: uppercase;
-    color: var(--text-secondary);
-    font-weight: 500;
-    letter-spacing: 0.5px;
-}
-
-.calendar-event .event-icon {
-    font-size: 24px;
-    color: var(--accent);
-    width: 40px;
-    text-align: center;
-    flex-shrink: 0;
-}
-
-.calendar-event .event-info {
-    flex: 1;
-}
-
-.calendar-event .event-info .event-title {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.calendar-event .event-info .event-desc {
-    font-size: 13px;
-    color: var(--text-secondary);
-    margin-top: 2px;
-}
-
-.calendar-event .event-info .event-tag {
-    display: inline-block;
-    font-size: 10px;
-    padding: 2px 10px;
-    border-radius: 12px;
-    background: rgba(240, 185, 11, 0.12);
-    color: var(--accent);
-    margin-top: 4px;
-}
-
-.calendar-empty {
-    text-align: center;
-    padding: 40px 20px;
-    color: var(--text-secondary);
-    font-size: 16px;
-}
-
-.calendar-empty i {
-    font-size: 40px;
-    color: var(--accent);
-    margin-bottom: 12px;
-    display: block;
-}
-
-/* ===== ПОДВАЛ ===== */
-.footer {
-    padding: clamp(20px, 3vw, 40px) 0 clamp(12px, 1.5vw, 20px);
-    border-top: 1px solid var(--border);
-    background: rgba(11, 14, 17, 0.7);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-}
-
-.footer-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: clamp(16px, 2vw, 30px);
-    margin-bottom: clamp(16px, 2vw, 30px);
-}
-
-.footer-brand .logo {
-    font-size: clamp(16px, 2vw, 20px);
-    margin-bottom: 6px;
-}
-
-.footer-brand p {
-    color: var(--text-secondary);
-    font-size: clamp(12px, 0.9vw, 14px);
-    max-width: 260px;
-}
-
-.footer-links h4 {
-    font-size: clamp(12px, 0.9vw, 14px);
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 8px;
-}
-
-.footer-links a {
-    display: block;
-    color: var(--text-secondary);
-    text-decoration: none;
-    font-size: clamp(11px, 0.8vw, 13px);
-    padding: 3px 0;
-    transition: var(--transition);
-}
-
-.footer-links a:hover {
-    color: var(--accent);
-}
-
-.footer-bottom {
-    border-top: 1px solid var(--border);
-    padding-top: clamp(12px, 1.5vw, 20px);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.footer-bottom p {
-    color: var(--text-secondary);
-    font-size: clamp(10px, 0.8vw, 13px);
-}
-
-/* ===== УВЕДОМЛЕНИЯ ===== */
-.notification-banner {
-    position: fixed;
-    bottom: clamp(12px, 2vw, 30px);
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(30, 35, 41, 0.9);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--accent);
-    border-radius: var(--radius);
-    padding: clamp(10px, 1.5vw, 16px) clamp(14px, 2vw, 24px);
-    box-shadow: var(--shadow);
-    z-index: 9999;
-    max-width: min(500px, 92%);
-    width: auto;
-    display: none;
-    animation: slideUp 0.4s ease;
-}
-
-.notification-banner.show {
-    display: block;
-}
-
-.notification-banner .notif-content {
-    display: flex;
-    align-items: center;
-    gap: clamp(8px, 1.5vw, 12px);
-}
-
-.notification-banner .notif-icon {
-    color: var(--accent);
-    font-size: clamp(18px, 2.5vw, 24px);
-    flex-shrink: 0;
-}
-
-.notification-banner .notif-text {
-    flex: 1;
-    font-size: clamp(12px, 1.2vw, 14px);
-    color: var(--text-primary);
-    line-height: 1.4;
-}
-
-.notification-banner .notif-close {
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    font-size: clamp(14px, 1.8vw, 18px);
-    cursor: pointer;
-    padding: 0 4px;
-    flex-shrink: 0;
-}
-
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateX(-50%) translateY(20px);
+// ===== ТРЕКИНГ РЕКЛАМЫ =====
+function trackAdShow(adId) {
+    if (!adId) return;
+    
+    let stats = LS.get('adStats') || {
+        totalShows: 0,
+        totalClicks: 0,
+        todayShows: 0,
+        todayClicks: 0,
+        todayDate: new Date().toISOString().split('T')[0]
+    };
+    
+    stats.totalShows = (stats.totalShows || 0) + 1;
+    
+    const today = new Date().toISOString().split('T')[0];
+    if (stats.todayDate !== today) {
+        stats.todayDate = today;
+        stats.todayShows = 0;
+        stats.todayClicks = 0;
     }
-    to {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
+    stats.todayShows = (stats.todayShows || 0) + 1;
+    
+    LS.set('adStats', stats);
+    
+    let adStats = LS.get('adItemStats') || {};
+    if (!adStats[adId]) {
+        adStats[adId] = { shows: 0, clicks: 0, todayShows: 0, todayClicks: 0, lastDate: today };
+    }
+    adStats[adId].shows = (adStats[adId].shows || 0) + 1;
+    if (adStats[adId].lastDate !== today) {
+        adStats[adId].lastDate = today;
+        adStats[adId].todayShows = 0;
+        adStats[adId].todayClicks = 0;
+    }
+    adStats[adId].todayShows = (adStats[adId].todayShows || 0) + 1;
+    LS.set('adItemStats', adStats);
+}
+
+function trackAdClick(adId, isLink = false) {
+    if (!adId) return;
+    
+    let stats = LS.get('adStats') || {
+        totalShows: 0,
+        totalClicks: 0,
+        todayShows: 0,
+        todayClicks: 0,
+        todayDate: new Date().toISOString().split('T')[0]
+    };
+    
+    stats.totalClicks = (stats.totalClicks || 0) + 1;
+    
+    const today = new Date().toISOString().split('T')[0];
+    if (stats.todayDate !== today) {
+        stats.todayDate = today;
+        stats.todayShows = 0;
+        stats.todayClicks = 0;
+    }
+    stats.todayClicks = (stats.todayClicks || 0) + 1;
+    
+    LS.set('adStats', stats);
+    
+    let adStats = LS.get('adItemStats') || {};
+    if (!adStats[adId]) {
+        adStats[adId] = { shows: 0, clicks: 0, todayShows: 0, todayClicks: 0, lastDate: today };
+    }
+    adStats[adId].clicks = (adStats[adId].clicks || 0) + 1;
+    if (adStats[adId].lastDate !== today) {
+        adStats[adId].lastDate = today;
+        adStats[adId].todayShows = 0;
+        adStats[adId].todayClicks = 0;
+    }
+    adStats[adId].todayClicks = (adStats[adId].todayClicks || 0) + 1;
+    LS.set('adItemStats', adStats);
+    
+    console.log(`📊 Реклама ${adId}: клик!`);
+}
+
+// ===== ЗАГРУЗКА КРИПТОВАЛЮТ =====
+async function loadCrypto() {
+    const container = document.getElementById('cryptoContainer');
+    if (!container) return;
+    
+    container.innerHTML = Array(12).fill(0).map(() =>
+        '<div class="skeleton" style="height:clamp(100px, 12vw, 130px);border-radius:12px;"></div>'
+    ).join('');
+
+    try {
+        const response = await fetch(
+            'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=12&page=1&sparkline=false'
+        );
+        const data = await response.json();
+        container.innerHTML = '';
+
+        data.forEach(coin => {
+            const change = coin.price_change_percentage_24h;
+            const changeClass = change >= 0 ? 'positive' : 'negative';
+            const changeSign = change >= 0 ? '+' : '';
+
+            const card = document.createElement('div');
+            card.className = 'crypto-card';
+            card.innerHTML = `
+                <div class="name">
+                    <img src="${coin.image}" alt="${coin.name}" loading="lazy" width="28" height="28" />
+                    ${coin.name}
+                    <span class="symbol">${coin.symbol.toUpperCase()}</span>
+                </div>
+                <div class="price">$${coin.current_price.toLocaleString()}</div>
+                <div class="change ${changeClass}">${changeSign}${change.toFixed(2)}%</div>
+            `;
+            container.appendChild(card);
+        });
+
+        document.getElementById('updateTime').textContent =
+            'Обновление: ' + new Date().toLocaleTimeString();
+
+    } catch (error) {
+        container.innerHTML =
+            '<p style="color:var(--red);grid-column:1/-1;text-align:center;">⚠️ Не удалось загрузить данные</p>';
+        console.error('Ошибка загрузки криптовалют:', error);
     }
 }
 
-/* ===== SKELETON ===== */
-.skeleton {
-    background: linear-gradient(90deg, rgba(30, 35, 41, 0.6) 25%, rgba(45, 50, 58, 0.8) 50%, rgba(30, 35, 41, 0.6) 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
-    border-radius: var(--radius-sm);
-}
+// ===== ЗАГРУЗКА ОБЫЧНЫХ НОВОСТЕЙ =====
+async function loadNews() {
+    const container = document.getElementById('newsContainer');
+    if (!container) return;
 
-@keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-}
+    container.innerHTML = Array(6).fill(0).map(() =>
+        '<div class="skeleton" style="height:clamp(120px, 15vw, 160px);border-radius:12px;"></div>'
+    ).join('');
 
-/* ===== SCROLLBAR ===== */
-::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
+    let allNews = [];
 
-::-webkit-scrollbar-track {
-    background: var(--bg-primary);
-}
+    for (const source of NEWS_SOURCES) {
+        try {
+            const response = await fetch(source.url);
 
-::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: 3px;
-}
+            if (!response.ok) {
+                console.warn(`⚠️ Ошибка ${source.name}: ${response.status}`);
+                continue;
+            }
 
-::-webkit-scrollbar-thumb:hover {
-    background: var(--accent);
-}
+            const data = await response.json();
+            const articles = source.parser(data);
 
-/* ===== АДАПТИВНОСТЬ ===== */
-@media (max-width: 1024px) {
-    .footer-grid {
-        grid-template-columns: repeat(2, 1fr);
+            if (articles && articles.length > 0) {
+                const limited = articles.slice(0, source.limit);
+                allNews = allNews.concat(limited.map(item => ({
+                    ...item,
+                    sourceName: source.name,
+                    thumbnail: optimizeImageUrl(item.thumbnail)
+                })));
+                console.log(`✅ ${source.name}: загружено ${limited.length} новостей`);
+            }
+        } catch (error) {
+            console.error(`❌ Ошибка ${source.name}:`, error);
+        }
     }
-    .calendar-event {
-        flex-wrap: wrap;
-        gap: 10px;
-    }
-}
 
-@media (max-width: 768px) {
-    .last-update span {
-        display: none;
+    if (allNews.length === 0) {
+        container.innerHTML = '<p style="color:var(--red);grid-column:1/-1;text-align:center;">⚠️ Не удалось загрузить новости</p>';
+        return;
     }
-    .header {
-        height: 54px;
-    }
-    .crypto-container {
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    }
-    .calendar-event {
-        padding: 12px 14px;
-    }
-    .calendar-event .event-date {
-        font-size: 16px;
-        min-width: 40px;
-    }
-    .calendar-event .event-icon {
-        font-size: 18px;
-        width: 32px;
-    }
-}
 
-@media (max-width: 480px) {
-    .container {
-        padding: 0 10px;
-    }
-    .header {
-        height: 48px;
-        padding: 6px 0;
-    }
-    .crypto-container {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 8px;
-    }
-    .news-container {
-        grid-template-columns: 1fr;
-    }
-    .posts-container {
-        grid-template-columns: 1fr;
-    }
-    .footer-grid {
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-    }
-    .calendar-event {
-        flex-direction: column;
-        align-items: stretch;
-        text-align: center;
-    }
-    .calendar-event .event-date {
-        flex-direction: row;
-        justify-content: center;
-        gap: 4px;
-        font-size: 14px;
+    allNews = shuffleArray(allNews);
+    const displayNews = allNews.slice(0, 6);
+    const newTitles = displayNews.map(item => item.title);
+    checkNewNews(newTitles);
+
+    const remaining = getRemainingTranslations();
+    const maxTranslations = Math.min(displayNews.length, 6, Math.max(remaining, 0));
+
+    container.innerHTML = '';
+    for (let i = 0; i < displayNews.length; i++) {
+        const item = displayNews[i];
+        const titleRu = maxTranslations > 0 && i < maxTranslations 
+            ? await translateToRussian(item.title) 
+            : item.title;
+
+        const card = document.createElement('div');
+        card.className = 'news-card';
+
+        let thumbnailHtml = '';
+        if (item.thumbnail && item.thumbnail.startsWith('http')) {
+            thumbnailHtml = `
+                <div style="margin-bottom:8px;overflow:hidden;border-radius:6px;background:var(--bg-primary);">
+                    <img src="${item.thumbnail}" alt="" loading="lazy"
+                         style="width:100%;height:auto;max-height:160px;object-fit:cover;display:block;" />
+                </div>
+            `;
+        }
+
+        card.innerHTML = `
+            <div class="news-source">
+                <i class="fas fa-globe"></i>
+                ${item.source?.title || item.sourceName || 'Unknown'}
+                <span style="margin-left:auto;color:var(--text-secondary);font-size:clamp(9px,0.8vw,11px);">
+                    ${item.published_at ? new Date(item.published_at).toLocaleDateString('ru-RU') : 'Сегодня'}
+                </span>
+                <span class="source-badge">${item.sourceName || ''}</span>
+                ${maxTranslations === 0 || i >= maxTranslations ? '<span class="source-badge" style="background:#848e9c;color:#fff;">EN</span>' : ''}
+            </div>
+            ${thumbnailHtml}
+            <h3><a href="${item.url}" target="_blank" rel="noopener">${titleRu}</a></h3>
+        `;
+        container.appendChild(card);
     }
 }
 
-@media (max-width: 380px) {
-    .crypto-container {
-        grid-template-columns: 1fr 1fr;
-        gap: 6px;
+// ===== ЗАГРУЗКА НОВОСТЕЙ АЛЬТКОИНОВ =====
+async function loadAltcoinNews() {
+    const container = document.getElementById('altcoinContainer');
+    if (!container) return;
+
+    container.innerHTML = Array(6).fill(0).map(() =>
+        '<div class="skeleton" style="height:clamp(120px, 15vw, 160px);border-radius:12px;"></div>'
+    ).join('');
+
+    let allNews = [];
+
+    for (const source of ALTCOIN_SOURCES) {
+        try {
+            const response = await fetch(source.url);
+
+            if (!response.ok) {
+                console.warn(`⚠️ Ошибка ${source.name}: ${response.status}`);
+                continue;
+            }
+
+            const data = await response.json();
+            const articles = source.parser(data);
+
+            if (articles && articles.length > 0) {
+                const filtered = articles.filter(item => isAltcoinNews(item.title));
+                const limited = filtered.slice(0, source.limit);
+                allNews = allNews.concat(limited.map(item => ({
+                    ...item,
+                    sourceName: source.name,
+                    thumbnail: optimizeImageUrl(item.thumbnail)
+                })));
+                console.log(`✅ ${source.name}: загружено ${limited.length} новостей об альткоинах`);
+            }
+        } catch (error) {
+            console.error(`❌ Ошибка ${source.name}:`, error);
+        }
     }
-    .crypto-card {
-        padding: 10px;
+
+    if (allNews.length === 0) {
+        container.innerHTML = '<p style="color:var(--red);grid-column:1/-1;text-align:center;">⚠️ Новостей альткоинов пока нет</p>';
+        return;
     }
-    .crypto-card .price {
-        font-size: 16px;
+
+    allNews = shuffleArray(allNews);
+    const displayNews = allNews.slice(0, 10);
+
+    const remaining = getRemainingTranslations();
+    const maxTranslations = Math.min(displayNews.length, 6, Math.max(remaining, 0));
+
+    container.innerHTML = '';
+    for (let i = 0; i < displayNews.length; i++) {
+        const item = displayNews[i];
+        const titleRu = maxTranslations > 0 && i < maxTranslations 
+            ? await translateToRussian(item.title) 
+            : item.title;
+
+        const card = document.createElement('div');
+        card.className = 'news-card';
+
+        let thumbnailHtml = '';
+        if (item.thumbnail && item.thumbnail.startsWith('http')) {
+            thumbnailHtml = `
+                <div style="margin-bottom:8px;overflow:hidden;border-radius:6px;background:var(--bg-primary);">
+                    <img src="${item.thumbnail}" alt="" loading="lazy"
+                         style="width:100%;height:auto;max-height:160px;object-fit:cover;display:block;" />
+                </div>
+            `;
+        }
+
+        let mentionedCoin = '';
+        const lowerTitle = item.title.toLowerCase();
+        for (const keyword of ALTCOIN_KEYWORDS) {
+            if (lowerTitle.includes(keyword)) {
+                mentionedCoin = keyword.toUpperCase();
+                break;
+            }
+        }
+
+        card.innerHTML = `
+            <div class="news-source">
+                <i class="fas fa-coins"></i>
+                ${mentionedCoin ? `🪙 ${mentionedCoin}` : 'Альткоин'}
+                <span style="margin-left:auto;color:var(--text-secondary);font-size:clamp(9px,0.8vw,11px);">
+                    ${item.published_at ? new Date(item.published_at).toLocaleDateString('ru-RU') : 'Сегодня'}
+                </span>
+                <span class="source-badge">${item.sourceName || ''}</span>
+                ${maxTranslations === 0 || i >= maxTranslations ? '<span class="source-badge" style="background:#848e9c;color:#fff;">EN</span>' : ''}
+            </div>
+            ${thumbnailHtml}
+            <h3><a href="${item.url}" target="_blank" rel="noopener">${titleRu}</a></h3>
+        `;
+        container.appendChild(card);
     }
 }
 
-@media (min-width: 1920px) {
-    .container {
-        max-width: 1440px;
-    }
-    .crypto-container {
-        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+// ===== КРИПТО-КАЛЕНДАРЬ (С ЗАПАСНЫМИ СОБЫТИЯМИ) =====
+async function loadCalendar() {
+    const container = document.getElementById('calendarContainer');
+    if (!container) return;
+
+    container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Загрузка событий...</div>';
+
+    try {
+        const response = await fetch(
+            'https://api.coingecko.com/api/v3/events?page=1'
+        );
+        const data = await response.json();
+
+        let events = [];
+
+        if (data && data.data && data.data.length > 0) {
+            events = data.data.slice(0, 10);
+        } else {
+            events = getFallbackEvents();
+        }
+
+        if (events.length === 0) {
+            container.innerHTML = `
+                <div class="calendar-empty">
+                    <i class="fas fa-calendar-times"></i>
+                    <p>Нет предстоящих событий</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = '';
+        events.forEach(event => {
+            const date = new Date(event.event_date || event.date);
+            const day = date.getDate().toString().padStart(2, '0');
+            const month = date.toLocaleString('ru', { month: 'short' });
+            
+            let icon = '📅';
+            const type = (event.type || '').toLowerCase();
+            if (type.includes('conference')) icon = '🎤';
+            else if (type.includes('fork')) icon = '🔧';
+            else if (type.includes('sale') || type.includes('token')) icon = '💰';
+            else if (type.includes('launch')) icon = '🚀';
+            else if (type.includes('deadline')) icon = '⏰';
+            else if (type.includes('update') || type.includes('upgrade')) icon = '⚙️';
+
+            const card = document.createElement('div');
+            card.className = 'calendar-event';
+            card.innerHTML = `
+                <div class="event-date">
+                    ${day}
+                    <span class="month">${month}</span>
+                </div>
+                <div class="event-icon">${icon}</div>
+                <div class="event-info">
+                    <div class="event-title">${event.name || 'Событие'}</div>
+                    ${event.description ? `<div class="event-desc">${event.description.substring(0, 120)}...</div>` : ''}
+                    <span class="event-tag">${event.type || 'Событие'}</span>
+                    ${event.coins && event.coins.length > 0 ? ` <span class="event-tag" style="background:rgba(14,203,129,0.12);color:#0ecb81;">${event.coins.map(c => c.symbol.toUpperCase()).join(', ')}</span>` : ''}
+                </div>
+            `;
+            container.appendChild(card);
+        });
+
+    } catch (error) {
+        console.error('Ошибка загрузки календаря:', error);
+        const events = getFallbackEvents();
+        if (events.length > 0) {
+            container.innerHTML = '';
+            events.forEach(event => {
+                const date = new Date(event.date);
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = date.toLocaleString('ru', { month: 'short' });
+                
+                const card = document.createElement('div');
+                card.className = 'calendar-event';
+                card.innerHTML = `
+                    <div class="event-date">
+                        ${day}
+                        <span class="month">${month}</span>
+                    </div>
+                    <div class="event-icon">📅</div>
+                    <div class="event-info">
+                        <div class="event-title">${event.name}</div>
+                        <div class="event-desc">${event.description}</div>
+                        <span class="event-tag">${event.type}</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        } else {
+            container.innerHTML = `
+                <div class="calendar-empty">
+                    <i class="fas fa-exclamation-triangle" style="color:var(--red);"></i>
+                    <p>Не удалось загрузить события</p>
+                    <button onclick="loadCalendar()" style="margin-top:12px;padding:8px 20px;background:var(--accent);border:none;border-radius:8px;color:#0b0e11;font-weight:600;cursor:pointer;">Повторить</button>
+                </div>
+            `;
+        }
     }
 }
+
+// ===== ЗАПАСНЫЕ СОБЫТИЯ =====
+function getFallbackEvents() {
+    const now = new Date();
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+
+    return [
+        {
+            name: 'Биткоин халвинг',
+            description: 'Очередное уменьшение награды за добычу блока BTC. Ожидается рост волатильности.',
+            type: 'Халвинг',
+            date: new Date(today.getTime() + 86400000 * 2).toISOString()
+        },
+        {
+            name: 'Обновление Ethereum (Pectra)',
+            description: 'Крупное обновление сети Ethereum, включающее улучшения масштабируемости и безопасности.',
+            type: 'Апгрейд сети',
+            date: new Date(today.getTime() + 86400000 * 5).toISOString()
+        },
+        {
+            name: 'Конференция Blockchain Life',
+            description: 'Крупнейшая крипто-конференция в Европе. Ожидаются анонсы от ведущих проектов.',
+            type: 'Конференция',
+            date: new Date(today.getTime() + 86400000 * 10).toISOString()
+        },
+        {
+            name: 'Запуск токена LayerZero',
+            description: 'Долгожданный токен-сейл одного из самых ожидаемых проектов.',
+            type: 'Токен-сейл',
+            date: new Date(today.getTime() + 86400000 * 14).toISOString()
+        },
+        {
+            name: 'Дебаты о регулировании криптовалют в ЕС',
+            description: 'Европейский парламент обсуждает новый законопроект MiCA 2.0.',
+            type: 'Регулирование',
+            date: new Date(today.getTime() + 86400000 * 18).toISOString()
+        },
+        {
+            name: 'Solana Breakpoint',
+            description: 'Ежегодная конференция экосистемы Solana с анонсами новых проектов.',
+            type: 'Конференция',
+            date: new Date(today.getTime() + 86400000 * 22).toISOString()
+        }
+    ];
+}
+
+// ===== ПРОВЕРКА НОВЫХ НОВОСТЕЙ =====
+function checkNewNews(newTitles) {
+    if (lastNewsTitles.length === 0) {
+        lastNewsTitles = newTitles;
+        return;
+    }
+
+    const newItems = newTitles.filter(title => !lastNewsTitles.includes(title));
+
+    if (newItems.length > 0 && notificationEnabled) {
+        const message = `📰 Новая новость: ${newItems[0].substring(0, 60)}...`;
+        showNotification('📰', message);
+
+        if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('CoinDigest — Новая новость!', {
+                body: newItems[0].substring(0, 100) + '...',
+                icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🪙</text></svg>'
+            });
+        }
+    }
+
+    lastNewsTitles = newTitles;
+}
+
+// ===== УВЕДОМЛЕНИЯ =====
+function showNotification(icon, text) {
+    const banner = document.getElementById('notificationBanner');
+    if (!banner) {
+        createNotificationBanner();
+        setTimeout(() => showNotification(icon, text), 100);
+        return;
+    }
+
+    const iconEl = banner.querySelector('.notif-icon');
+    const textEl = banner.querySelector('.notif-text');
+
+    if (iconEl) iconEl.innerHTML = `<i class="${icon.includes('fa-') ? icon : 'fas fa-bell'}"></i>`;
+    if (textEl) textEl.innerHTML = text;
+
+    banner.classList.add('show');
+
+    clearTimeout(pendingNotification);
+    pendingNotification = setTimeout(() => {
+        banner.classList.remove('show');
+    }, 8000);
+}
+
+function createNotificationBanner() {
+    const banner = document.createElement('div');
+    banner.id = 'notificationBanner';
+    banner.className = 'notification-banner';
+    banner.innerHTML = `
+        <div class="notif-content">
+            <div class="notif-icon"><i class="fas fa-bell"></i></div>
+            <div class="notif-text">Новое уведомление</div>
+            <button class="notif-close" onclick="this.closest('.notification-banner').classList.remove('show')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    document.body.appendChild(banner);
+}
+
+// ===== ЗАПРОС РАЗРЕШЕНИЯ НА УВЕДОМЛЕНИЯ =====
+function requestNotificationPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission().then(permission => {
+            if (permission === 'granted') {
+                notificationEnabled = true;
+                showNotification('🔔', '✅ Уведомления включены!');
+            } else {
+                notificationEnabled = false;
+            }
+        });
+    } else if ('Notification' in window && Notification.permission === 'granted') {
+        notificationEnabled = true;
+    }
+}
+
+// ===== ОТОБРАЖЕНИЕ РЕКЛАМЫ =====
+function showAd(ads, index) {
+    const container = document.getElementById('adContainer');
+    const ad = ads[index];
+    if (!ad) return;
+
+    trackAdShow(ad.id);
+
+    let html = '<div class="ad-content" style="cursor:pointer;">';
+    
+    if (ad.type === 'image' && ad.url) {
+        html += `<img src="${ad.url}" alt="Реклама" loading="lazy" onclick="trackAdClick('${ad.id}')" />`;
+    } else if (ad.type === 'gif' && ad.url) {
+        html += `<img src="${ad.url}" alt="Реклама GIF" loading="lazy" style="max-height:200px;" onclick="trackAdClick('${ad.id}')" />`;
+    } else if (ad.type === 'video' && ad.url) {
+        html += `<video controls autoplay muted loop style="max-height:200px;border-radius:8px;" onclick="trackAdClick('${ad.id}')">
+                    <source src="${ad.url}" type="video/mp4">
+                    Ваш браузер не поддерживает видео
+                </video>`;
+    } else if (ad.type === 'link' && ad.link) {
+        html += `<a href="${ad.link}" target="_blank" rel="noopener" onclick="trackAdClick('${ad.id}', true)">${ad.text || 'Перейти по ссылке'}</a>`;
+    } else if (ad.type === 'html' && ad.text) {
+        html += ad.text;
+    }
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+// ===== РЕКЛАМА =====
+function loadAd() {
+    const container = document.getElementById('adContainer');
+    const ads = LS.get('ads') || [];
+
+    if (!ads || ads.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    showAd(ads, currentAdIndex);
+
+    if (adInterval) clearInterval(adInterval);
+    adInterval = setInterval(() => {
+        currentAdIndex = (currentAdIndex + 1) % ads.length;
+        showAd(ads, currentAdIndex);
+    }, 30000);
+}
+
+// ===== ЭКСКЛЮЗИВНЫЕ МАТЕРИАЛЫ =====
+async function loadExclusivePosts() {
+    const container = document.getElementById('postsContainer');
+
+    try {
+        const response = await fetch('data/posts.json');
+        let posts = await response.json();
+
+        const autoExclusive = await fetchExclusiveContent();
+        posts = posts.concat(autoExclusive);
+
+        const uniquePosts = [];
+        const seenTitles = new Set();
+        for (const post of posts) {
+            if (!seenTitles.has(post.title)) {
+                seenTitles.add(post.title);
+                uniquePosts.push(post);
+            }
+        }
+        posts = uniquePosts.slice(0, 9);
+
+        container.innerHTML = '';
+
+        if (posts.length === 0) {
+            container.innerHTML = '<p style="color:var(--text-secondary);grid-column:1/-1;text-align:center;">Материалы загружаются...</p>';
+            return;
+        }
+
+        posts.slice().reverse().forEach(post => {
+            const card = document.createElement('div');
+            card.className = 'post-card';
+            card.innerHTML = `
+                <h3>${post.url ? `<a href="${post.url}" target="_blank">${post.title}</a>` : post.title}</h3>
+                <div class="date">${post.date}</div>
+                <p>${post.content ? post.content.substring(0, 120) + (post.content.length > 120 ? '...' : '') : ''}</p>
+                ${post.isExclusive ? '<span style="display:inline-block;background:var(--accent);color:var(--bg-primary);font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;margin-top:6px;">⭐ ЭКСКЛЮЗИВ</span>' : ''}
+            `;
+            container.appendChild(card);
+        });
+    } catch (error) {
+        console.error('Ошибка загрузки постов:', error);
+        const autoPosts = await fetchExclusiveContent();
+        if (autoPosts.length > 0) {
+            renderAutoPosts(autoPosts);
+        }
+    }
+}
+
+// ===== АВТОМАТИЧЕСКИЙ СБОР ЭКСКЛЮЗИВОВ =====
+async function fetchExclusiveContent() {
+    try {
+        const sources = [
+            'https://api.rss2json.com/v1/api.json?rss_url=https://cointelegraph.com/feed',
+            'https://api.rss2json.com/v1/api.json?rss_url=https://www.coindesk.com/feed',
+            'https://api.rss2json.com/v1/api.json?rss_url=https://cryptopotato.com/feed',
+            'https://api.rss2json.com/v1/api.json?rss_url=https://news.bitcoin.com/feed'
+        ];
+
+        let exclusivePosts = [];
+        const maxPosts = 6;
+
+        for (const url of sources) {
+            if (exclusivePosts.length >= maxPosts) break;
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) continue;
+
+                const data = await response.json();
+                if (!data || !data.items) continue;
+
+                for (const item of data.items) {
+                    if (exclusivePosts.length >= maxPosts) break;
+
+                    const text = (item.title + ' ' + (item.description || '')).toLowerCase();
+                    const isExclusive = EXCLUSIVE_KEYWORDS.some(keyword =>
+                        text.includes(keyword.toLowerCase())
+                    );
+
+                    if (isExclusive) {
+                        exclusivePosts.push({
+                            title: item.title,
+                            url: item.link,
+                            content: item.description || 'Эксклюзивный аналитический материал',
+                            date: item.pubDate ? new Date(item.pubDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                            isExclusive: true
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn('Ошибка парсинга источника:', e);
+            }
+        }
+
+        return exclusivePosts;
+    } catch (error) {
+        console.error('Ошибка автоматического сбора эксклюзивов:', error);
+        return [];
+    }
+}
+
+function renderAutoPosts(posts) {
+    const container = document.getElementById('postsContainer');
+    container.innerHTML = '';
+    posts.slice(0, 6).forEach(post => {
+        const card = document.createElement('div');
+        card.className = 'post-card';
+        card.innerHTML = `
+            <h3><a href="${post.url}" target="_blank">${post.title}</a></h3>
+            <div class="date">${post.date}</div>
+            <p>${post.content ? post.content.substring(0, 120) + (post.content.length > 120 ? '...' : '') : 'Эксклюзивный материал'}</p>
+            ${post.isExclusive ? '<span style="display:inline-block;background:var(--accent);color:var(--bg-primary);font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;margin-top:6px;">⭐ ЭКСКЛЮЗИВ</span>' : ''}
+        `;
+        container.appendChild(card);
+    });
+}
+
+// ===== ПЕРЕМЕШИВАНИЕ =====
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
+// ============================================
+// ===== AI-АНАЛИЗ КРИПТОРЫНКА =====
+// ============================================
+
+async function generateCryptoAnalysis() {
+    try {
+        const priceResponse = await fetch(
+            'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&sparkline=false'
+        );
+        const coins = await priceResponse.json();
+
+        let news = [];
+        try {
+            const newsResponse = await fetch('data/news_cache.json');
+            if (newsResponse.ok) {
+                news = await newsResponse.json();
+            }
+        } catch (e) {
+            news = [
+                { title: 'Биткоин показывает волатильность на фоне макроэкономических данных' },
+                { title: 'Эфир укрепляется благодаря развитию Layer-2 решений' },
+                { title: 'Альткоины демонстрируют смешанную динамику' }
+            ];
+        }
+
+        let priceChanges = [];
+        let totalChange = 0;
+
+        coins.forEach(coin => {
+            const change = coin.price_change_percentage_24h || 0;
+            priceChanges.push({
+                name: coin.name,
+                symbol: coin.symbol.toUpperCase(),
+                price: coin.current_price,
+                change: change
+            });
+            totalChange += change;
+        });
+
+        const avgChange = (totalChange / coins.length).toFixed(2);
+
+        let trend = 'нейтральный';
+        let trendEmoji = '⚖️';
+        if (avgChange > 3) {
+            trend = 'бычий';
+            trendEmoji = '🐂';
+        } else if (avgChange < -3) {
+            trend = 'медвежий';
+            trendEmoji = '🐻';
+        }
+
+        const bullishKeywords = ['рост', 'бычий', 'растёт', 'увеличивается', 'покупают', 'инвестиции', 'одобрение', 'прорыв'];
+        const bearishKeywords = ['падение', 'медвежий', 'падает', 'снижается', 'продают', 'регуляция', 'запрет', 'риск'];
+
+        let bullishNewsCount = 0;
+        let bearishNewsCount = 0;
+
+        news.slice(0, 10).forEach(item => {
+            const text = (item.title || '').toLowerCase();
+            bullishKeywords.forEach(kw => {
+                if (text.includes(kw)) bullishNewsCount++;
+            });
+            bearishKeywords.forEach(kw => {
+                if (text.includes(kw)) bearishNewsCount++;
+            });
+        });
+
+        let sentiment = 'нейтральное';
+        let sentimentEmoji = '😐';
+        if (bullishNewsCount > bearishNewsCount + 2) {
+            sentiment = 'позитивное';
+            sentimentEmoji = '😊';
+        } else if (bearishNewsCount > bullishNewsCount + 2) {
+            sentiment = 'негативное';
+            sentimentEmoji = '😰';
+        }
+
+        const timeOfDay = new Date().getHours() < 12 ? 'утренний' : 'вечерний';
+        const dateStr = new Date().toLocaleDateString('ru-RU');
+
+        const sortedByChange = [...priceChanges].sort((a, b) => b.change - a.change);
+        const topGainers = sortedByChange.slice(0, 3).filter(c => c.change > 0);
+        const topLosers = sortedByChange.slice(-3).filter(c => c.change < 0);
+
+        let analysis = `📊 *${timeOfDay === 'утренний' ? '🌅 Утренний' : '🌙 Вечерний'} анализ крипторынка*\n`;
+        analysis += `📅 ${dateStr}\n\n`;
+
+        analysis += `📈 *Общий тренд:* ${trendEmoji} ${trend}\n`;
+        analysis += `📊 *Среднее изменение:* ${avgChange > 0 ? '+' : ''}${avgChange}%\n`;
+        analysis += `😌 *Настроение:* ${sentimentEmoji} ${sentiment}\n\n`;
+
+        if (topGainers.length > 0) {
+            analysis += `🟢 *Лидеры роста:*\n`;
+            topGainers.forEach(c => {
+                analysis += `  • ${c.symbol}: +${c.change.toFixed(2)}% ($${c.price.toFixed(2)})\n`;
+            });
+        }
+
+        if (topLosers.length > 0) {
+            analysis += `\n🔴 *Лидеры падения:*\n`;
+            topLosers.forEach(c => {
+                analysis += `  • ${c.symbol}: ${c.change.toFixed(2)}% ($${c.price.toFixed(2)})\n`;
+            });
+        }
+
+        analysis += `\n📰 *Ключевые новости:*\n`;
+        news.slice(0, 3).forEach(item => {
+            const title = item.title || 'Новость';
+            analysis += `  • ${title.substring(0, 60)}...\n`;
+        });
+
+        analysis += `\n💡 *Рекомендация:* `;
+        if (trend === 'бычий' && sentiment === 'позитивное') {
+            analysis += `Рынок выглядит позитивно. Возможно усиление восходящего тренда. 🟢`;
+        } else if (trend === 'медвежий' && sentiment === 'негативное') {
+            analysis += `Рынок находится под давлением. Рекомендуется осторожность. 🔴`;
+        } else {
+            analysis += `Рынок неопределённый. Следите за ключевыми уровнями. ⚖️`;
+        }
+
+        analysis += `\n\n🔄 *Актуальные цены:*\n`;
+        priceChanges.slice(0, 5).forEach(c => {
+            const sign = c.change > 0 ? '+' : '';
+            analysis += `  • ${c.symbol}: $${c.price.toFixed(2)} (${sign}${c.change.toFixed(2)}%)\n`;
+        });
+
+        analysis += `\n🔗 *Подробнее на сайте:* https://coindigestonline.ru`;
+
+        return analysis;
+    } catch (error) {
+        console.error('Ошибка генерации анализа:', error);
+        return null;
+    }
+}
+
+async function sendAnalysisToTelegram(analysis) {
+    if (!analysis) return;
+
+    const BOT_TOKEN = '8422981212:AAFqUt5juqdC_l64q7FACOBw-mFL4f0hN8Y';
+    const CHAT_ID = '-1004345602790';
+
+    try {
+        const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: CHAT_ID,
+                text: analysis,
+                parse_mode: 'Markdown',
+                disable_web_page_preview: true,
+                disable_notification: false
+            })
+        });
+
+        const result = await response.json();
+        if (result.ok) {
+            console.log('✅ Анализ отправлен в канал');
+        } else {
+            console.error('❌ Ошибка отправки анализа:', result.description);
+        }
+    } catch (error) {
+        console.error('❌ Ошибка отправки анализа:', error);
+    }
+}
+
+async function checkAndSendAnalysis() {
+    const now = new Date();
+    const hours = now.getHours();
+    const dateKey = now.toISOString().split('T')[0];
+
+    if (hours >= 9 && hours < 11) {
+        const key = `morning_${dateKey}`;
+        if (LS.get(key)) return;
+        LS.set(key, true);
+        
+        console.log('📊 Генерируем утренний анализ...');
+        const analysis = await generateCryptoAnalysis();
+        await sendAnalysisToTelegram(analysis);
+    }
+
+    if (hours >= 21 && hours < 23) {
+        const key = `evening_${dateKey}`;
+        if (LS.get(key)) return;
+        LS.set(key, true);
+        
+        console.log('📊 Генерируем вечерний анализ...');
+        const analysis = await generateCryptoAnalysis();
+        await sendAnalysisToTelegram(analysis);
+    }
+}
+
+// ===== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК =====
+function setupTabs() {
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = {
+        main: document.getElementById('tabMain'),
+        altcoins: document.getElementById('tabAltcoins'),
+        calendar: document.getElementById('tabCalendar')
+    };
+
+    function switchTab(tabName) {
+        Object.values(tabContents).forEach(el => {
+            if (el) el.classList.remove('active');
+        });
+
+        if (tabContents[tabName]) {
+            tabContents[tabName].classList.add('active');
+        }
+
+        tabBtns.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tabName);
+        });
+
+        // Загружаем данные при переключении
+        if (tabName === 'main') {
+            loadCrypto();
+            loadNews();
+            loadExclusivePosts();
+        } else if (tabName === 'altcoins') {
+            loadAltcoinNews();
+        } else if (tabName === 'calendar') {
+            loadCalendar();
+        }
+    }
+
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const tab = this.dataset.tab;
+            if (tab) switchTab(tab);
+        });
+    });
+
+    document.querySelectorAll('.mobile-menu a, .footer-links a[data-tab]').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const tab = this.dataset.tab;
+            if (tab) {
+                switchTab(tab);
+                const mobileMenu = document.getElementById('mobileMenu');
+                if (mobileMenu) mobileMenu.classList.remove('open');
+            }
+        });
+    });
+
+    switchTab('main');
+}
+
+// ===== МОБИЛЬНОЕ МЕНЮ =====
+document.addEventListener('DOMContentLoaded', function() {
+    const menuBtn = document.getElementById('mobileMenuBtn');
+    const mobileMenu = document.getElementById('mobileMenu');
+
+    if (menuBtn && mobileMenu) {
+        menuBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            mobileMenu.classList.toggle('open');
+            const icon = this.querySelector('i');
+            if (icon) {
+                icon.className = mobileMenu.classList.contains('open')
+                    ? 'fas fa-times'
+                    : 'fas fa-bars';
+            }
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!mobileMenu.contains(e.target) && !menuBtn.contains(e.target)) {
+                mobileMenu.classList.remove('open');
+                const icon = menuBtn.querySelector('i');
+                if (icon) icon.className = 'fas fa-bars';
+            }
+        });
+    }
+
+    setupTabs();
+    trackVisit();
+    setTimeout(requestNotificationPermission, 2000);
+    loadAd();
+});
+
+// ===== ЗАПУСК =====
+loadCrypto();
+loadNews();
+loadExclusivePosts();
+
+setTimeout(checkAndSendAnalysis, 5000);
+setInterval(checkAndSendAnalysis, 60000);
+
+setInterval(() => {
+    loadCrypto();
+    loadNews();
+}, 3600000);
