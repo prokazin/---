@@ -425,6 +425,93 @@ async function loadCrypto() {
     }
 }
 
+// ===== ЗАГРУЗКА ОБЫЧНЫХ НОВОСТЕЙ =====
+async function loadNews() {
+    const container = document.getElementById('newsContainer');
+    if (!container) return;
+
+    container.innerHTML = Array(6).fill(0).map(() =>
+        '<div class="skeleton" style="height:clamp(120px, 15vw, 160px);border-radius:12px;"></div>'
+    ).join('');
+
+    let allNews = [];
+
+    for (const source of NEWS_SOURCES) {
+        try {
+            const response = await fetch(source.url);
+
+            if (!response.ok) {
+                console.warn(`⚠️ Ошибка ${source.name}: ${response.status}`);
+                continue;
+            }
+
+            const data = await response.json();
+            const articles = source.parser(data);
+
+            if (articles && articles.length > 0) {
+                const limited = articles.slice(0, source.limit);
+                allNews = allNews.concat(limited.map(item => ({
+                    ...item,
+                    sourceName: source.name,
+                    thumbnail: optimizeImageUrl(item.thumbnail)
+                })));
+                console.log(`✅ ${source.name}: загружено ${limited.length} новостей`);
+            }
+        } catch (error) {
+            console.error(`❌ Ошибка ${source.name}:`, error);
+        }
+    }
+
+    if (allNews.length === 0) {
+        container.innerHTML = '<p style="color:var(--red);grid-column:1/-1;text-align:center;">⚠️ Не удалось загрузить новости</p>';
+        return;
+    }
+
+    allNews = shuffleArray(allNews);
+    const displayNews = allNews.slice(0, 6);
+    const newTitles = displayNews.map(item => item.title);
+    checkNewNews(newTitles);
+
+    const remaining = getRemainingTranslations();
+    const maxTranslations = Math.min(displayNews.length, 6, Math.max(remaining, 0));
+
+    container.innerHTML = '';
+    for (let i = 0; i < displayNews.length; i++) {
+        const item = displayNews[i];
+        const titleRu = maxTranslations > 0 && i < maxTranslations 
+            ? await translateToRussian(item.title) 
+            : item.title;
+
+        const card = document.createElement('div');
+        card.className = 'news-card';
+
+        let thumbnailHtml = '';
+        if (item.thumbnail && item.thumbnail.startsWith('http')) {
+            thumbnailHtml = `
+                <div style="margin-bottom:8px;overflow:hidden;border-radius:6px;background:var(--bg-primary);">
+                    <img src="${item.thumbnail}" alt="" loading="lazy"
+                         style="width:100%;height:auto;max-height:160px;object-fit:cover;display:block;" />
+                </div>
+            `;
+        }
+
+        card.innerHTML = `
+            <div class="news-source">
+                <i class="fas fa-globe"></i>
+                ${item.source?.title || item.sourceName || 'Unknown'}
+                <span style="margin-left:auto;color:var(--text-secondary);font-size:clamp(9px,0.8vw,11px);">
+                    ${item.published_at ? new Date(item.published_at).toLocaleDateString('ru-RU') : 'Сегодня'}
+                </span>
+                <span class="source-badge">${item.sourceName || ''}</span>
+                ${maxTranslations === 0 || i >= maxTranslations ? '<span class="source-badge" style="background:#848e9c;color:#fff;">EN</span>' : ''}
+            </div>
+            ${thumbnailHtml}
+            <h3><a href="${item.url}" target="_blank" rel="noopener">${titleRu}</a></h3>
+        `;
+        container.appendChild(card);
+    }
+}
+
 // ===== ЗАГРУЗКА НОВОСТЕЙ АЛЬТКОИНОВ =====
 async function loadAltcoinNews() {
     const container = document.getElementById('altcoinContainer');
@@ -528,7 +615,6 @@ async function loadCalendar() {
     container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Загрузка событий...</div>';
 
     try {
-        // Пробуем CoinGecko API
         const response = await fetch(
             'https://api.coingecko.com/api/v3/events?page=1'
         );
@@ -539,7 +625,6 @@ async function loadCalendar() {
         if (data && data.data && data.data.length > 0) {
             events = data.data.slice(0, 10);
         } else {
-            // Если API пустой — используем запасные события
             events = getFallbackEvents();
         }
 
@@ -588,7 +673,6 @@ async function loadCalendar() {
 
     } catch (error) {
         console.error('Ошибка загрузки календаря:', error);
-        // При ошибке показываем запасные события
         const events = getFallbackEvents();
         if (events.length > 0) {
             container.innerHTML = '';
@@ -625,7 +709,7 @@ async function loadCalendar() {
     }
 }
 
-// ===== ЗАПАСНЫЕ СОБЫТИЯ (ЕСЛИ API ПУСТОЙ) =====
+// ===== ЗАПАСНЫЕ СОБЫТИЯ =====
 function getFallbackEvents() {
     const now = new Date();
     const today = new Date(now);
@@ -652,19 +736,19 @@ function getFallbackEvents() {
         },
         {
             name: 'Запуск токена LayerZero',
-            description: 'Долгожданный токен-сейл одного из самых ожидаемых проектов в сфере межсетевых взаимодействий.',
+            description: 'Долгожданный токен-сейл одного из самых ожидаемых проектов.',
             type: 'Токен-сейл',
             date: new Date(today.getTime() + 86400000 * 14).toISOString()
         },
         {
             name: 'Дебаты о регулировании криптовалют в ЕС',
-            description: 'Европейский парламент обсуждает новый законопроект о регулировании цифровых активов (MiCA 2.0).',
+            description: 'Европейский парламент обсуждает новый законопроект MiCA 2.0.',
             type: 'Регулирование',
             date: new Date(today.getTime() + 86400000 * 18).toISOString()
         },
         {
             name: 'Solana Breakpoint',
-            description: 'Ежегодная конференция экосистемы Solana с анонсами новых проектов и обновлений.',
+            description: 'Ежегодная конференция экосистемы Solana с анонсами новых проектов.',
             type: 'Конференция',
             date: new Date(today.getTime() + 86400000 * 22).toISOString()
         }
@@ -1095,7 +1179,6 @@ async function checkAndSendAnalysis() {
     const hours = now.getHours();
     const dateKey = now.toISOString().split('T')[0];
 
-    // Утро: 9:00–11:00
     if (hours >= 9 && hours < 11) {
         const key = `morning_${dateKey}`;
         if (LS.get(key)) return;
@@ -1106,7 +1189,6 @@ async function checkAndSendAnalysis() {
         await sendAnalysisToTelegram(analysis);
     }
 
-    // Вечер: 21:00–23:00
     if (hours >= 21 && hours < 23) {
         const key = `evening_${dateKey}`;
         if (LS.get(key)) return;
@@ -1126,32 +1208,24 @@ function setupTabs() {
         altcoins: document.getElementById('tabAltcoins'),
         calendar: document.getElementById('tabCalendar')
     };
-    const blogSection = document.getElementById('blogSection');
 
     function switchTab(tabName) {
-        // Скрываем все вкладки
         Object.values(tabContents).forEach(el => {
             if (el) el.classList.remove('active');
         });
 
-        // Показываем нужную
         if (tabContents[tabName]) {
             tabContents[tabName].classList.add('active');
         }
 
-        // Обновляем активный класс у кнопок
         tabBtns.forEach(btn => {
             btn.classList.toggle('active', btn.dataset.tab === tabName);
         });
 
-        // Показываем/скрываем эксклюзивные материалы
-        if (blogSection) {
-            blogSection.style.display = tabName === 'main' ? 'block' : 'none';
-        }
-
-        // Загружаем данные для вкладок
+        // Загружаем данные при переключении
         if (tabName === 'main') {
             loadCrypto();
+            loadNews();
             loadExclusivePosts();
         } else if (tabName === 'altcoins') {
             loadAltcoinNews();
@@ -1160,7 +1234,6 @@ function setupTabs() {
         }
     }
 
-    // Обработчики кликов по кнопкам вкладок
     tabBtns.forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
@@ -1169,21 +1242,18 @@ function setupTabs() {
         });
     });
 
-    // Обработчики для мобильного меню и подвала
     document.querySelectorAll('.mobile-menu a, .footer-links a[data-tab]').forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
             const tab = this.dataset.tab;
             if (tab) {
                 switchTab(tab);
-                // Закрываем мобильное меню
                 const mobileMenu = document.getElementById('mobileMenu');
                 if (mobileMenu) mobileMenu.classList.remove('open');
             }
         });
     });
 
-    // Активная вкладка по умолчанию
     switchTab('main');
 }
 
@@ -1221,6 +1291,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ===== ЗАПУСК =====
 loadCrypto();
+loadNews();
 loadExclusivePosts();
 
 setTimeout(checkAndSendAnalysis, 5000);
@@ -1228,4 +1299,5 @@ setInterval(checkAndSendAnalysis, 60000);
 
 setInterval(() => {
     loadCrypto();
+    loadNews();
 }, 3600000);
