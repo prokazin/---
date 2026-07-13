@@ -607,7 +607,7 @@ async function loadAltcoinNews() {
     }
 }
 
-// ===== КРИПТО-КАЛЕНДАРЬ (С ЗАПАСНЫМИ СОБЫТИЯМИ) =====
+// ===== КРИПТО-КАЛЕНДАРЬ =====
 async function loadCalendar() {
     const container = document.getElementById('calendarContainer');
     if (!container) return;
@@ -1205,6 +1205,7 @@ function setupTabs() {
     const tabBtns = document.querySelectorAll('.tab-btn');
     const tabContents = {
         main: document.getElementById('tabMain'),
+        news: document.getElementById('tabNews'),
         altcoins: document.getElementById('tabAltcoins'),
         calendar: document.getElementById('tabCalendar')
     };
@@ -1222,11 +1223,11 @@ function setupTabs() {
             btn.classList.toggle('active', btn.dataset.tab === tabName);
         });
 
-        // Загружаем данные при переключении
         if (tabName === 'main') {
             loadCrypto();
-            loadNews();
             loadExclusivePosts();
+        } else if (tabName === 'news') {
+            loadNews();
         } else if (tabName === 'altcoins') {
             loadAltcoinNews();
         } else if (tabName === 'calendar') {
@@ -1291,7 +1292,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ===== ЗАПУСК =====
 loadCrypto();
-loadNews();
 loadExclusivePosts();
 
 setTimeout(checkAndSendAnalysis, 5000);
@@ -1299,5 +1299,4 @@ setInterval(checkAndSendAnalysis, 60000);
 
 setInterval(() => {
     loadCrypto();
-    loadNews();
 }, 3600000);
