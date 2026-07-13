@@ -26,6 +26,7 @@
     --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --max-width: 1280px;
     --header-height: 60px;
+    --tabs-height: 48px;
     --glass-blur: 20px;
 }
 
@@ -104,38 +105,6 @@ img {
     font-size: clamp(18px, 2.5vw, 26px);
 }
 
-.nav-menu {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.nav-menu a {
-    color: var(--text-secondary);
-    text-decoration: none;
-    padding: 6px 14px;
-    border-radius: var(--radius-sm);
-    font-size: clamp(12px, 1.2vw, 14px);
-    font-weight: 500;
-    transition: var(--transition);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    white-space: nowrap;
-    background: transparent;
-}
-
-.nav-menu a:hover {
-    color: var(--text-primary);
-    background: var(--bg-hover);
-}
-
-.nav-menu a.active {
-    color: var(--accent);
-    background: rgba(240, 185, 11, 0.12);
-    box-shadow: 0 0 20px rgba(240, 185, 11, 0.05);
-}
-
 .header-right {
     display: flex;
     align-items: center;
@@ -210,6 +179,72 @@ img {
     color: var(--accent);
 }
 
+/* ===== ВКЛАДКИ (WINDOWS 11 СТИЛЬ) ===== */
+.tabs-bar {
+    background: rgba(11, 14, 17, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    padding: 4px 0;
+    position: sticky;
+    top: var(--header-height);
+    z-index: 999;
+}
+
+.tabs-wrapper {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    padding: 4px 0;
+    scrollbar-width: none;
+}
+
+.tabs-wrapper::-webkit-scrollbar {
+    display: none;
+}
+
+.tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 8px 20px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 500;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.tab-btn:hover {
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
+}
+
+.tab-btn.active {
+    background: rgba(240, 185, 11, 0.12);
+    color: var(--accent);
+    box-shadow: 0 0 20px rgba(240, 185, 11, 0.05);
+}
+
+.tab-btn i {
+    font-size: 16px;
+}
+
+@media (max-width: 480px) {
+    .tab-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+    .tab-btn i {
+        font-size: 14px;
+    }
+}
+
 /* ===== БАННЕР ===== */
 .banner {
     padding: clamp(16px, 3vw, 40px) 0;
@@ -262,7 +297,7 @@ img {
     object-fit: cover;
 }
 
-/* ===== ВКЛАДКИ ===== */
+/* ===== ВКЛАДКИ КОНТЕНТА ===== */
 .content-section {
     padding: clamp(16px, 2vw, 24px) 0;
 }
@@ -797,12 +832,6 @@ img {
 }
 
 @media (max-width: 768px) {
-    .nav-menu {
-        display: none;
-    }
-    .mobile-menu-btn {
-        display: block;
-    }
     .last-update span {
         display: none;
     }
