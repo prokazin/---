@@ -178,7 +178,7 @@ img {
     color: var(--accent);
 }
 
-/* ===== ВКЛАДКИ (WINDOWS 11 СТИЛЬ) ===== */
+/* ===== ВКЛАДКИ ===== */
 .tabs-bar {
     background: rgba(11, 14, 17, 0.6);
     backdrop-filter: blur(16px);
@@ -265,7 +265,7 @@ img {
 
 /* ===== БАННЕР ===== */
 .banner {
-    padding: clamp(16px, 3vw, 40px) 0;
+    padding: clamp(20px, 4vw, 48px) 0;
     border-bottom: 1px solid var(--border);
     text-align: center;
     background: rgba(11, 14, 17, 0.5);
@@ -274,7 +274,7 @@ img {
 }
 
 .banner h1 {
-    font-size: clamp(20px, 4vw, 38px);
+    font-size: clamp(24px, 4.5vw, 42px);
     font-weight: 800;
     line-height: 1.2;
 }
@@ -286,7 +286,7 @@ img {
 .banner p {
     font-size: clamp(14px, 1.5vw, 18px);
     color: var(--text-secondary);
-    margin-top: 4px;
+    margin-top: 6px;
 }
 
 /* ===== РЕКЛАМА ===== */
