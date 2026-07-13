@@ -17,17 +17,16 @@
 </head>
 <body>
     <!-- ШАПКА -->
-    <header class="header">
+    <header class="header glass">
         <div class="container">
             <div class="logo">
                 <i class="fas fa-coins"></i>
                 <span>CoinDigest</span>
             </div>
-            <nav class="nav-menu">
+            <nav class="nav-menu" id="navMenu">
                 <a href="#" class="active" data-tab="main"><i class="fas fa-home"></i> <span>Главная</span></a>
-                <a href="#cryptoSection" data-tab="crypto"><i class="fas fa-chart-line"></i> <span>Рынок</span></a>
-                <a href="#newsSection" data-tab="news"><i class="fas fa-newspaper"></i> <span>Новости</span></a>
-                <a href="#altcoinSection" data-tab="altcoins"><i class="fas fa-coins"></i> <span>Альткоины</span></a>
+                <a href="#" data-tab="altcoins"><i class="fas fa-coins"></i> <span>Альткоины</span></a>
+                <a href="#" data-tab="calendar"><i class="fas fa-calendar-alt"></i> <span>Календарь</span></a>
             </nav>
             <div class="header-right">
                 <div class="last-update">
@@ -42,15 +41,14 @@
     </header>
 
     <!-- МОБИЛЬНОЕ МЕНЮ -->
-    <div class="mobile-menu" id="mobileMenu">
+    <div class="mobile-menu glass" id="mobileMenu">
         <a href="#" class="active" data-tab="main"><i class="fas fa-home"></i> Главная</a>
-        <a href="#cryptoSection" data-tab="crypto"><i class="fas fa-chart-line"></i> Рынок</a>
-        <a href="#newsSection" data-tab="news"><i class="fas fa-newspaper"></i> Новости</a>
-        <a href="#altcoinSection" data-tab="altcoins"><i class="fas fa-coins"></i> Альткоины</a>
+        <a href="#" data-tab="altcoins"><i class="fas fa-coins"></i> Альткоины</a>
+        <a href="#" data-tab="calendar"><i class="fas fa-calendar-alt"></i> Календарь</a>
     </div>
 
-    <!-- БАННЕР -->
-    <section class="banner">
+    <!-- БАННЕР (упрощён) -->
+    <section class="banner glass">
         <div class="container">
             <div class="banner-content">
                 <h1>Актуальные новости <span>крипторынка</span></h1>
@@ -60,54 +58,56 @@
     </section>
 
     <!-- РЕКЛАМА -->
-    <section class="ad-section" id="adSection">
+    <section class="ad-section">
         <div class="container">
-            <div id="adContainer" class="ad-container">
+            <div id="adContainer" class="ad-container glass">
                 <!-- Реклама подгружается через JS -->
             </div>
         </div>
     </section>
 
-    <!-- КАРТОЧКИ КРИПТОВАЛЮТ -->
-    <section class="crypto-grid" id="cryptoSection">
+    <!-- КОНТЕНТ -->
+    <section class="content-section" id="contentSection">
         <div class="container">
-            <div class="section-header">
-                <h2><i class="fas fa-rocket"></i> Топ криптовалют</h2>
-                <span class="section-subtitle">Цены в реальном времени</span>
+
+            <!-- ВКЛАДКА: ГЛАВНАЯ (ТОП КРИПТОВАЛЮТЫ) -->
+            <div id="tabMain" class="tab-content active">
+                <div class="section-header">
+                    <h2><i class="fas fa-rocket"></i> Топ криптовалют</h2>
+                    <span class="section-subtitle">Цены в реальном времени</span>
+                </div>
+                <div id="cryptoContainer" class="crypto-container">
+                    <!-- Данные подгружаются через JS -->
+                </div>
             </div>
-            <div id="cryptoContainer" class="crypto-container">
-                <!-- Данные подгружаются через JS -->
+
+            <!-- ВКЛАДКА: АЛЬТКОИНЫ -->
+            <div id="tabAltcoins" class="tab-content">
+                <div class="section-header">
+                    <h2><i class="fas fa-coins"></i> Новости альткоинов</h2>
+                    <span class="section-subtitle">XRP, DOGE, SOL, ADA, PEPE и другие</span>
+                </div>
+                <div id="altcoinContainer" class="news-container">
+                    <!-- Новости альткоинов подгружаются через JS -->
+                </div>
             </div>
+
+            <!-- ВКЛАДКА: КРИПТО-КАЛЕНДАРЬ -->
+            <div id="tabCalendar" class="tab-content">
+                <div class="section-header">
+                    <h2><i class="fas fa-calendar-alt"></i> Крипто-календарь</h2>
+                    <span class="section-subtitle">Важные события рынка</span>
+                </div>
+                <div id="calendarContainer" class="calendar-container">
+                    <!-- Календарь подгружается через JS -->
+                </div>
+            </div>
+
         </div>
     </section>
 
-    <!-- НОВОСТИ (ОСНОВНЫЕ) -->
-    <section class="news-section" id="newsSection">
-        <div class="container">
-            <div class="section-header">
-                <h2><i class="fas fa-newspaper"></i> Свежие новости</h2>
-            </div>
-            <div id="newsContainer" class="news-container">
-                <!-- Новости из API -->
-            </div>
-        </div>
-    </section>
-
-    <!-- НОВОСТИ АЛЬТКОИНОВ (НОВАЯ СЕКЦИЯ) -->
-    <section class="news-section altcoin-section" id="altcoinSection" style="display:none;">
-        <div class="container">
-            <div class="section-header">
-                <h2><i class="fas fa-coins"></i> Новости альткоинов</h2>
-                <span class="section-subtitle">XRP, DOGE, SOL, ADA, PEPE и другие</span>
-            </div>
-            <div id="altcoinContainer" class="news-container">
-                <!-- Новости альткоинов подгружаются через JS -->
-            </div>
-        </div>
-    </section>
-
-    <!-- ЭКСКЛЮЗИВНЫЕ МАТЕРИАЛЫ -->
-    <section class="blog-section">
+    <!-- ЭКСКЛЮЗИВНЫЕ МАТЕРИАЛЫ (всегда видны, но только на главной) -->
+    <section class="blog-section" id="blogSection">
         <div class="container">
             <div class="section-header">
                 <h2><i class="fas fa-pen-fancy"></i> Эксклюзивные материалы</h2>
@@ -120,7 +120,7 @@
     </section>
 
     <!-- ПОДВАЛ -->
-    <footer class="footer">
+    <footer class="footer glass">
         <div class="container">
             <div class="footer-grid">
                 <div class="footer-brand">
@@ -132,10 +132,9 @@
                 </div>
                 <div class="footer-links">
                     <h4>Разделы</h4>
-                    <a href="#">Главная</a>
-                    <a href="#cryptoSection">Рынок</a>
-                    <a href="#newsSection">Новости</a>
-                    <a href="#altcoinSection">Альткоины</a>
+                    <a href="#" data-tab="main">Главная</a>
+                    <a href="#" data-tab="altcoins">Альткоины</a>
+                    <a href="#" data-tab="calendar">Календарь</a>
                 </div>
             </div>
             <div class="footer-bottom">
