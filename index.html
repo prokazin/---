@@ -82,14 +82,36 @@
     <section class="content-section" id="contentSection">
         <div class="container">
 
-            <!-- ВКЛАДКА: ГЛАВНАЯ (ТОП КРИПТОВАЛЮТЫ) -->
+            <!-- ВКЛАДКА: ГЛАВНАЯ -->
             <div id="tabMain" class="tab-content active">
+                <!-- Топ криптовалют -->
                 <div class="section-header">
                     <h2><i class="fas fa-rocket"></i> Топ криптовалют</h2>
                     <span class="section-subtitle">Цены в реальном времени</span>
                 </div>
                 <div id="cryptoContainer" class="crypto-container">
                     <!-- Данные подгружаются через JS -->
+                </div>
+
+                <!-- Обычные новости -->
+                <div style="margin-top:32px;">
+                    <div class="section-header">
+                        <h2><i class="fas fa-newspaper"></i> Свежие новости</h2>
+                    </div>
+                    <div id="newsContainer" class="news-container">
+                        <!-- Новости подгружаются через JS -->
+                    </div>
+                </div>
+
+                <!-- Эксклюзивные материалы -->
+                <div style="margin-top:32px;">
+                    <div class="section-header">
+                        <h2><i class="fas fa-pen-fancy"></i> Эксклюзивные материалы</h2>
+                        <span class="section-subtitle">Автоматический сбор</span>
+                    </div>
+                    <div id="postsContainer" class="posts-container">
+                        <!-- Посты из data/posts.json + автоматический сбор -->
+                    </div>
                 </div>
             </div>
 
@@ -115,19 +137,6 @@
                 </div>
             </div>
 
-        </div>
-    </section>
-
-    <!-- ЭКСКЛЮЗИВНЫЕ МАТЕРИАЛЫ (только на главной) -->
-    <section class="blog-section" id="blogSection">
-        <div class="container">
-            <div class="section-header">
-                <h2><i class="fas fa-pen-fancy"></i> Эксклюзивные материалы</h2>
-                <span class="section-subtitle">Автоматический сбор</span>
-            </div>
-            <div id="postsContainer" class="posts-container">
-                <!-- Посты из data/posts.json + автоматический сбор -->
-            </div>
         </div>
     </section>
 
