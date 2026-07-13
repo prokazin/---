@@ -23,11 +23,6 @@
                 <i class="fas fa-coins"></i>
                 <span>CoinDigest</span>
             </div>
-            <nav class="nav-menu" id="navMenu">
-                <a href="#" class="active" data-tab="main"><i class="fas fa-home"></i> <span>Главная</span></a>
-                <a href="#" data-tab="altcoins"><i class="fas fa-coins"></i> <span>Альткоины</span></a>
-                <a href="#" data-tab="calendar"><i class="fas fa-calendar-alt"></i> <span>Календарь</span></a>
-            </nav>
             <div class="header-right">
                 <div class="last-update">
                     <i class="fas fa-sync-alt fa-spin"></i>
@@ -47,7 +42,24 @@
         <a href="#" data-tab="calendar"><i class="fas fa-calendar-alt"></i> Календарь</a>
     </div>
 
-    <!-- БАННЕР (упрощён) -->
+    <!-- ВКЛАДКИ (WINDOWS 11 СТИЛЬ) -->
+    <div class="tabs-bar glass">
+        <div class="container">
+            <div class="tabs-wrapper">
+                <button class="tab-btn active" data-tab="main">
+                    <i class="fas fa-home"></i> Главная
+                </button>
+                <button class="tab-btn" data-tab="altcoins">
+                    <i class="fas fa-coins"></i> Альткоины
+                </button>
+                <button class="tab-btn" data-tab="calendar">
+                    <i class="fas fa-calendar-alt"></i> Календарь
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- БАННЕР -->
     <section class="banner glass">
         <div class="container">
             <div class="banner-content">
@@ -106,7 +118,7 @@
         </div>
     </section>
 
-    <!-- ЭКСКЛЮЗИВНЫЕ МАТЕРИАЛЫ (всегда видны, но только на главной) -->
+    <!-- ЭКСКЛЮЗИВНЫЕ МАТЕРИАЛЫ (только на главной) -->
     <section class="blog-section" id="blogSection">
         <div class="container">
             <div class="section-header">
