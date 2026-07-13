@@ -43,6 +43,8 @@ try {
         tgApp.ready();
         document.body.classList.add('tg-app');
         console.log('✅ Telegram Mini App инициализирован');
+        // В Telegram Mini App показываем рекламу всегда
+        setTimeout(loadAd, 500);
     }
 } catch (e) {
     console.log('ℹ️ Не Telegram окружение');
@@ -987,6 +989,11 @@ function requestNotificationPermission() {
 
 function loadAd() {
     const container = document.getElementById('adContainer');
+    if (!container) {
+        console.log('⚠️ Контейнер рекламы не найден');
+        return;
+    }
+    
     const ads = LS.get('ads') || [];
 
     if (!ads || ads.length === 0) {
@@ -994,29 +1001,44 @@ function loadAd() {
         return;
     }
 
+    // Если индекс вышел за пределы — сбрасываем
+    if (currentAdIndex >= ads.length) {
+        currentAdIndex = 0;
+    }
+
     showAd(ads, currentAdIndex);
 
     if (adInterval) clearInterval(adInterval);
     adInterval = setInterval(() => {
-        currentAdIndex = (currentAdIndex + 1) % ads.length;
-        showAd(ads, currentAdIndex);
+        const adsNow = LS.get('ads') || [];
+        if (adsNow.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+        currentAdIndex = (currentAdIndex + 1) % adsNow.length;
+        showAd(adsNow, currentAdIndex);
     }, 30000);
 }
 
 function showAd(ads, index) {
     const container = document.getElementById('adContainer');
+    if (!container) return;
+    
     const ad = ads[index];
-    if (!ad) return;
+    if (!ad) {
+        container.innerHTML = '';
+        return;
+    }
 
     // Увеличиваем счётчик показов
     trackAdShow(ad.id);
 
-    let html = '<div class="ad-content">';
+    let html = '<div class="ad-content" style="text-align:center;">';
     
     if (ad.type === 'image' || ad.type === 'gif') {
-        html += `<img src="${ad.url}" alt="${ad.name || 'Реклама'}" loading="lazy" style="max-width:100%;border-radius:8px;cursor:pointer;" onclick="trackAdClick('${ad.id}')" />`;
+        html += `<img src="${ad.url}" alt="${ad.name || 'Реклама'}" loading="lazy" style="max-width:100%;max-height:200px;border-radius:8px;cursor:pointer;" onclick="trackAdClick('${ad.id}')" />`;
         if (ad.text) {
-            html += `<div style="margin-top:6px;font-size:14px;color:var(--text-secondary);text-align:center;">${ad.text}</div>`;
+            html += `<div style="margin-top:8px;font-size:14px;color:var(--text-secondary);">${ad.text}</div>`;
         }
     } else if (ad.type === 'video') {
         html += `<video controls autoplay muted loop style="max-width:100%;max-height:200px;border-radius:8px;cursor:pointer;" onclick="trackAdClick('${ad.id}')">
@@ -1024,10 +1046,10 @@ function showAd(ads, index) {
                     Ваш браузер не поддерживает видео
                 </video>`;
         if (ad.text) {
-            html += `<div style="margin-top:6px;font-size:14px;color:var(--text-secondary);text-align:center;">${ad.text}</div>`;
+            html += `<div style="margin-top:8px;font-size:14px;color:var(--text-secondary);">${ad.text}</div>`;
         }
     } else if (ad.type === 'link') {
-        html += `<a href="${ad.link}" target="_blank" rel="noopener" style="display:inline-block;padding:12px 24px;background:var(--accent);color:#0b0e11;border-radius:8px;font-weight:600;text-decoration:none;transition:opacity 0.3s;" onclick="trackAdClick('${ad.id}', true)">
+        html += `<a href="${ad.link}" target="_blank" rel="noopener" style="display:inline-block;padding:12px 28px;background:var(--accent);color:#0b0e11;border-radius:8px;font-weight:600;text-decoration:none;transition:opacity 0.3s;cursor:pointer;" onclick="trackAdClick('${ad.id}', true)">
                     ${ad.text || 'Перейти по ссылке'}
                 </a>`;
     } else if (ad.type === 'html') {
@@ -1452,6 +1474,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setupTabs();
     trackVisit();
     setTimeout(requestNotificationPermission, 2000);
+    // Загружаем рекламу сразу
     loadAd();
 });
 
@@ -1465,3 +1488,8 @@ setInterval(checkAndSendAnalysis, 60000);
 setInterval(() => {
     loadCrypto();
 }, 3600000);
+
+// Перезагружаем рекламу при смене вкладок
+document.addEventListener('tabChanged', function() {
+    loadAd();
+});
