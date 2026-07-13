@@ -182,9 +182,22 @@ function renderAdmin() {
                     <input type="text" id="adName" placeholder="Моя реклама" />
                 </div>
             </div>
-            <div id="adFields">
-                <label style="color:#848e9c;font-size:13px;">URL файла (изображение, GIF, видео)</label>
+            
+            <!-- ЗАГРУЗКА ФАЙЛА (с телефона/компьютера) -->
+            <div id="fileUploadBlock" style="display:block;">
+                <label style="color:#848e9c;font-size:13px;">📤 Загрузить файл (изображение, GIF, видео)</label>
+                <div class="file-upload-wrapper">
+                    <input type="file" id="adFileInput" accept="image/*,video/*,.gif" />
+                    <span class="file-name" id="fileUploadName">Файл не выбран</span>
+                </div>
+                <div id="imagePreviewContainer" style="display:none;margin-top:8px;">
+                    <img id="imagePreview" class="image-preview" src="" alt="Превью" />
+                </div>
+                <label style="color:#848e9c;font-size:13px;">ИЛИ введите URL (если файл уже загружен)</label>
                 <input type="text" id="adUrl" placeholder="https://example.com/image.jpg" />
+            </div>
+            
+            <div id="adFields">
                 <label style="color:#848e9c;font-size:13px;">Ссылка для перехода (опционально)</label>
                 <input type="text" id="adLink" placeholder="https://example.com" />
                 <label style="color:#848e9c;font-size:13px;">Текст (для ссылки или HTML)</label>
@@ -222,45 +235,76 @@ function initAdminFunctions() {
             updateAdFields(this.value);
         });
     }
+
+    // Обработчик загрузки файла
+    const fileInput = document.getElementById('adFileInput');
+    if (fileInput) {
+        fileInput.addEventListener('change', function() {
+            const fileName = this.files[0] ? this.files[0].name : 'Файл не выбран';
+            document.getElementById('fileUploadName').textContent = fileName;
+            
+            // Превью для изображений
+            const previewContainer = document.getElementById('imagePreviewContainer');
+            const preview = document.getElementById('imagePreview');
+            if (this.files[0] && this.files[0].type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    previewContainer.style.display = 'block';
+                };
+                reader.readAsDataURL(this.files[0]);
+            } else {
+                previewContainer.style.display = 'none';
+            }
+        });
+    }
 }
 
 function updateAdFields(type) {
     const urlField = document.getElementById('adUrl');
     const linkField = document.getElementById('adLink');
     const textField = document.getElementById('adText');
+    const fileUploadBlock = document.getElementById('fileUploadBlock');
+    const fileInput = document.getElementById('adFileInput');
     
-    if (!urlField || !linkField || !textField) return;
+    if (!urlField || !linkField || !textField || !fileUploadBlock) return;
     
     const urlLabel = urlField.previousElementSibling;
     const linkLabel = linkField.previousElementSibling;
     const textLabel = textField.previousElementSibling;
     
-    if (type === 'link') {
+    // Для всех типов, кроме html, показываем загрузку файла
+    if (type === 'html') {
+        fileUploadBlock.style.display = 'none';
         urlField.style.display = 'none';
-        urlLabel.style.display = 'none';
-        linkField.style.display = 'block';
-        linkLabel.style.display = 'block';
-        textField.style.display = 'block';
-        textLabel.style.display = 'block';
-        linkField.placeholder = 'https://example.com (обязательно)';
-        textField.placeholder = 'Текст ссылки';
-    } else if (type === 'html') {
-        urlField.style.display = 'none';
-        urlLabel.style.display = 'none';
+        if (urlLabel) urlLabel.style.display = 'none';
         linkField.style.display = 'none';
-        linkLabel.style.display = 'none';
+        if (linkLabel) linkLabel.style.display = 'none';
         textField.style.display = 'block';
-        textLabel.style.display = 'block';
+        if (textLabel) textLabel.style.display = 'block';
         textField.placeholder = 'HTML код рекламы';
         textField.style.minHeight = '100px';
-    } else {
-        urlField.style.display = 'block';
-        urlLabel.style.display = 'block';
+    } else if (type === 'link') {
+        fileUploadBlock.style.display = 'none';
+        urlField.style.display = 'none';
+        if (urlLabel) urlLabel.style.display = 'none';
         linkField.style.display = 'block';
-        linkLabel.style.display = 'block';
+        if (linkLabel) linkLabel.style.display = 'block';
         textField.style.display = 'block';
-        textLabel.style.display = 'block';
-        urlField.placeholder = 'https://example.com/image.jpg';
+        if (textLabel) textLabel.style.display = 'block';
+        linkField.placeholder = 'https://example.com (обязательно)';
+        textField.placeholder = 'Текст ссылки';
+        textField.style.minHeight = '80px';
+    } else {
+        // image, gif, video — показываем загрузку файла
+        fileUploadBlock.style.display = 'block';
+        urlField.style.display = 'block';
+        if (urlLabel) urlLabel.style.display = 'block';
+        linkField.style.display = 'block';
+        if (linkLabel) linkLabel.style.display = 'block';
+        textField.style.display = 'block';
+        if (textLabel) textLabel.style.display = 'block';
+        urlField.placeholder = 'https://example.com/image.jpg (опционально)';
         linkField.placeholder = 'https://example.com (опционально)';
         textField.placeholder = 'Текст (опционально)';
         textField.style.minHeight = '80px';
@@ -274,14 +318,11 @@ function addAd() {
     const url = document.getElementById('adUrl').value.trim();
     const link = document.getElementById('adLink').value.trim();
     const text = document.getElementById('adText').value.trim();
+    const fileInput = document.getElementById('adFileInput');
+    const file = fileInput.files[0];
 
     if (type === 'link' && !link) {
         showToast('⚠️ Для ссылки укажите URL перехода', 'error');
-        return;
-    }
-
-    if ((type === 'image' || type === 'gif' || type === 'video') && !url) {
-        showToast('⚠️ Укажите URL файла', 'error');
         return;
     }
 
@@ -290,6 +331,25 @@ function addAd() {
         return;
     }
 
+    let finalUrl = url;
+
+    // Если загружен файл — конвертируем в base64
+    if (file && (type === 'image' || type === 'gif' || type === 'video')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            finalUrl = e.target.result;
+            saveAd(type, name, finalUrl, link, text);
+        };
+        reader.readAsDataURL(file);
+    } else if ((type === 'image' || type === 'gif' || type === 'video') && !url && !file) {
+        showToast('⚠️ Загрузите файл или укажите URL', 'error');
+        return;
+    } else {
+        saveAd(type, name, finalUrl, link, text);
+    }
+}
+
+function saveAd(type, name, url, link, text) {
     const ads = LS.get('ads') || [];
     const newAd = {
         id: Date.now().toString(36) + Math.random().toString(36).substr(2, 4),
@@ -305,6 +365,9 @@ function addAd() {
     LS.set('ads', ads);
     
     document.getElementById('adForm').reset();
+    document.getElementById('fileUploadName').textContent = 'Файл не выбран';
+    document.getElementById('imagePreviewContainer').style.display = 'none';
+    document.getElementById('imagePreview').src = '';
     loadAds();
     updateAdStats();
     showToast('✅ Реклама добавлена!');
@@ -324,12 +387,20 @@ function loadAds() {
     ads.forEach((ad, index) => {
         const div = document.createElement('div');
         div.className = 'ad-item';
+        // Показываем превью для base64
+        let previewHtml = '';
+        if (ad.url && ad.url.startsWith('data:image')) {
+            previewHtml = `<div style="margin-top:6px;"><img src="${ad.url}" style="max-height:60px;border-radius:4px;border:1px solid #2b3139;" /></div>`;
+        } else if (ad.url && ad.url.startsWith('data:video')) {
+            previewHtml = `<div style="margin-top:6px;"><video src="${ad.url}" style="max-height:60px;border-radius:4px;" muted></video></div>`;
+        }
         div.innerHTML = `
             <div class="ad-info">
                 <strong>${ad.name}</strong>
                 <small>Тип: ${ad.type} | ${ad.created ? new Date(ad.created).toLocaleDateString() : ''}</small>
-                ${ad.url ? `<div style="font-size:11px;color:#848e9c;word-break:break-all;">${ad.url}</div>` : ''}
+                ${ad.url ? `<div style="font-size:11px;color:#848e9c;word-break:break-all;max-width:200px;">${ad.url.substring(0, 60)}${ad.url.length > 60 ? '...' : ''}</div>` : ''}
                 ${ad.link ? `<div style="font-size:11px;color:#848e9c;word-break:break-all;">🔗 ${ad.link}</div>` : ''}
+                ${previewHtml}
             </div>
             <div class="ad-actions">
                 <button class="edit-btn" onclick="editAd(${index})"><i class="fas fa-edit"></i> Просмотр</button>
@@ -396,10 +467,15 @@ function updateStats() {
     document.getElementById('todayVisits').textContent = todayStats.count || 0;
     document.getElementById('weekVisits').textContent = weekStats.count || 0;
 
+    // ===== СТАТИСТИКА ПОСТОВ =====
     const posts = LS.get('posts') || [];
     document.getElementById('postsCount').textContent = posts.length;
-    document.getElementById('exclusiveCount').textContent = posts.filter(p => p.isExclusive === true).length;
+    
+    // Эксклюзивы (isExclusive === true)
+    const exclusive = posts.filter(p => p.isExclusive === true);
+    document.getElementById('exclusiveCount').textContent = exclusive.length;
 
+    // Последний пост
     const lastUpdateEl = document.getElementById('lastUpdate');
     if (lastUpdateEl) {
         if (posts.length > 0) {
