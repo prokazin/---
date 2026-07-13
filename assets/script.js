@@ -43,8 +43,6 @@ try {
         tgApp.ready();
         document.body.classList.add('tg-app');
         console.log('✅ Telegram Mini App инициализирован');
-        // В Telegram Mini App показываем рекламу всегда
-        setTimeout(loadAd, 500);
     }
 } catch (e) {
     console.log('ℹ️ Не Telegram окружение');
@@ -78,23 +76,23 @@ function getRemainingTranslations() {
 async function translateToRussian(text) {
     if (!text) return 'Новость';
     if (/[а-яА-Я]/.test(text)) return text;
-    
+
     const remaining = getRemainingTranslations();
     if (remaining <= 0) {
         return text;
     }
-    
+
     try {
         const response = await fetch(
             `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|ru`
         );
         const rawText = await response.text();
         const data = JSON.parse(rawText);
-        
+
         if (data.responseStatus === 403 || data.responseStatus === 429) {
             return text;
         }
-        
+
         if (data.responseData && data.responseData.translatedText) {
             incrementTranslationCount();
             return data.responseData.translatedText;
@@ -119,7 +117,7 @@ const ALTCOIN_KEYWORDS = [
 // ===== ИСТОЧНИКИ НОВОСТЕЙ =====
 const NEWS_SOURCES = [
     {
-        name: 'CoinDesk (RSS)',
+        name: 'CoinDesk',
         url: 'https://api.rss2json.com/v1/api.json?rss_url=https://www.coindesk.com/feed',
         parser: (data) => {
             if (!data || !data.items) return [];
@@ -134,7 +132,7 @@ const NEWS_SOURCES = [
         limit: 3
     },
     {
-        name: 'Cointelegraph (RSS)',
+        name: 'Cointelegraph',
         url: 'https://api.rss2json.com/v1/api.json?rss_url=https://cointelegraph.com/feed',
         parser: (data) => {
             if (!data || !data.items) return [];
@@ -149,7 +147,7 @@ const NEWS_SOURCES = [
         limit: 3
     },
     {
-        name: 'CryptoPotato (RSS)',
+        name: 'CryptoPotato',
         url: 'https://api.rss2json.com/v1/api.json?rss_url=https://cryptopotato.com/feed',
         parser: (data) => {
             if (!data || !data.items) return [];
@@ -164,7 +162,7 @@ const NEWS_SOURCES = [
         limit: 2
     },
     {
-        name: 'Bitcoin.com (RSS)',
+        name: 'Bitcoin.com',
         url: 'https://api.rss2json.com/v1/api.json?rss_url=https://news.bitcoin.com/feed',
         parser: (data) => {
             if (!data || !data.items) return [];
@@ -308,7 +306,7 @@ function isAltcoinNews(title) {
 // ===== ТРЕКИНГ РЕКЛАМЫ =====
 function trackAdShow(adId) {
     if (!adId) return;
-    
+
     let stats = LS.get('adStats') || {
         totalShows: 0,
         totalClicks: 0,
@@ -316,9 +314,9 @@ function trackAdShow(adId) {
         todayClicks: 0,
         todayDate: new Date().toISOString().split('T')[0]
     };
-    
+
     stats.totalShows = (stats.totalShows || 0) + 1;
-    
+
     const today = new Date().toISOString().split('T')[0];
     if (stats.todayDate !== today) {
         stats.todayDate = today;
@@ -326,9 +324,9 @@ function trackAdShow(adId) {
         stats.todayClicks = 0;
     }
     stats.todayShows = (stats.todayShows || 0) + 1;
-    
+
     LS.set('adStats', stats);
-    
+
     let adStats = LS.get('adItemStats') || {};
     if (!adStats[adId]) {
         adStats[adId] = { shows: 0, clicks: 0, todayShows: 0, todayClicks: 0, lastDate: today };
@@ -345,7 +343,7 @@ function trackAdShow(adId) {
 
 function trackAdClick(adId, isLink = false) {
     if (!adId) return;
-    
+
     let stats = LS.get('adStats') || {
         totalShows: 0,
         totalClicks: 0,
@@ -353,9 +351,9 @@ function trackAdClick(adId, isLink = false) {
         todayClicks: 0,
         todayDate: new Date().toISOString().split('T')[0]
     };
-    
+
     stats.totalClicks = (stats.totalClicks || 0) + 1;
-    
+
     const today = new Date().toISOString().split('T')[0];
     if (stats.todayDate !== today) {
         stats.todayDate = today;
@@ -363,9 +361,9 @@ function trackAdClick(adId, isLink = false) {
         stats.todayClicks = 0;
     }
     stats.todayClicks = (stats.todayClicks || 0) + 1;
-    
+
     LS.set('adStats', stats);
-    
+
     let adStats = LS.get('adItemStats') || {};
     if (!adStats[adId]) {
         adStats[adId] = { shows: 0, clicks: 0, todayShows: 0, todayClicks: 0, lastDate: today };
@@ -378,15 +376,18 @@ function trackAdClick(adId, isLink = false) {
     }
     adStats[adId].todayClicks = (adStats[adId].todayClicks || 0) + 1;
     LS.set('adItemStats', adStats);
-    
+
     console.log(`📊 Реклама ${adId}: клик!`);
 }
 
-// ===== ЗАГРУЗКА КРИПТОВАЛЮТ =====
+// ===== ЗАГРУЗКА КРИПТОВАЛЮТ (ИСПРАВЛЕНО) =====
 async function loadCrypto() {
     const container = document.getElementById('cryptoContainer');
-    if (!container) return;
-    
+    if (!container) {
+        console.error('❌ Контейнер cryptoContainer не найден');
+        return;
+    }
+
     container.innerHTML = Array(12).fill(0).map(() =>
         '<div class="skeleton" style="height:clamp(100px, 12vw, 130px);border-radius:12px;"></div>'
     ).join('');
@@ -395,25 +396,35 @@ async function loadCrypto() {
         const response = await fetch(
             'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=12&page=1&sparkline=false'
         );
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
         const data = await response.json();
+
+        if (!data || data.length === 0) {
+            throw new Error('Нет данных');
+        }
+
         container.innerHTML = '';
 
         data.forEach(coin => {
-            const change = coin.price_change_percentage_24h;
+            const change = coin.price_change_percentage_24h || 0;
             const changeClass = change >= 0 ? 'positive' : 'negative';
             const changeSign = change >= 0 ? '+' : '';
 
             const card = document.createElement('div');
             card.className = 'crypto-card';
             card.innerHTML = `
-                <div class="name">
-                    <img src="${coin.image}" alt="${coin.name}" loading="lazy" width="28" height="28" />
-                    ${coin.name}
-                    <span class="symbol">${coin.symbol.toUpperCase()}</span>
-                </div>
-                <div class="price">$${coin.current_price.toLocaleString()}</div>
-                <div class="change ${changeClass}">${changeSign}${change.toFixed(2)}%</div>
-            `;
+                        <div class="name">
+                            <img src="${coin.image}" alt="${coin.name}" loading="lazy" width="28" height="28" />
+                            ${coin.name}
+                            <span class="symbol">${coin.symbol.toUpperCase()}</span>
+                        </div>
+                        <div class="price">$${coin.current_price ? coin.current_price.toLocaleString() : '0'}</div>
+                        <div class="change ${changeClass}">${changeSign}${change.toFixed(2)}%</div>
+                    `;
             container.appendChild(card);
         });
 
@@ -421,9 +432,9 @@ async function loadCrypto() {
             'Обновление: ' + new Date().toLocaleTimeString();
 
     } catch (error) {
-        container.innerHTML =
-            '<p style="color:var(--red);grid-column:1/-1;text-align:center;">⚠️ Не удалось загрузить данные</p>';
         console.error('Ошибка загрузки криптовалют:', error);
+        container.innerHTML =
+            '<p style="color:var(--red);grid-column:1/-1;text-align:center;padding:20px;">⚠️ Не удалось загрузить данные</p>';
     }
 }
 
@@ -480,9 +491,9 @@ async function loadNews() {
     container.innerHTML = '';
     for (let i = 0; i < displayNews.length; i++) {
         const item = displayNews[i];
-        const titleRu = maxTranslations > 0 && i < maxTranslations 
-            ? await translateToRussian(item.title) 
-            : item.title;
+        const titleRu = maxTranslations > 0 && i < maxTranslations ?
+            await translateToRussian(item.title) :
+            item.title;
 
         const card = document.createElement('div');
         card.className = 'news-card';
@@ -490,26 +501,26 @@ async function loadNews() {
         let thumbnailHtml = '';
         if (item.thumbnail && item.thumbnail.startsWith('http')) {
             thumbnailHtml = `
-                <div style="margin-bottom:8px;overflow:hidden;border-radius:6px;background:var(--bg-primary);">
-                    <img src="${item.thumbnail}" alt="" loading="lazy"
-                         style="width:100%;height:auto;max-height:160px;object-fit:cover;display:block;" />
-                </div>
-            `;
+                        <div style="margin-bottom:8px;overflow:hidden;border-radius:6px;background:var(--bg-primary);">
+                            <img src="${item.thumbnail}" alt="" loading="lazy"
+                                 style="width:100%;height:auto;max-height:160px;object-fit:cover;display:block;" />
+                        </div>
+                    `;
         }
 
         card.innerHTML = `
-            <div class="news-source">
-                <i class="fas fa-globe"></i>
-                ${item.source?.title || item.sourceName || 'Unknown'}
-                <span style="margin-left:auto;color:var(--text-secondary);font-size:clamp(9px,0.8vw,11px);">
-                    ${item.published_at ? new Date(item.published_at).toLocaleDateString('ru-RU') : 'Сегодня'}
-                </span>
-                <span class="source-badge">${item.sourceName || ''}</span>
-                ${maxTranslations === 0 || i >= maxTranslations ? '<span class="source-badge" style="background:#848e9c;color:#fff;">EN</span>' : ''}
-            </div>
-            ${thumbnailHtml}
-            <h3><a href="${item.url}" target="_blank" rel="noopener">${titleRu}</a></h3>
-        `;
+                    <div class="news-source">
+                        <i class="fas fa-globe"></i>
+                        ${item.source?.title || item.sourceName || 'Unknown'}
+                        <span style="margin-left:auto;color:var(--text-secondary);font-size:clamp(9px,0.8vw,11px);">
+                            ${item.published_at ? new Date(item.published_at).toLocaleDateString('ru-RU') : 'Сегодня'}
+                        </span>
+                        <span class="source-badge">${item.sourceName || ''}</span>
+                        ${maxTranslations === 0 || i >= maxTranslations ? '<span class="source-badge" style="background:#848e9c;color:#fff;">EN</span>' : ''}
+                    </div>
+                    ${thumbnailHtml}
+                    <h3><a href="${item.url}" target="_blank" rel="noopener">${titleRu}</a></h3>
+                `;
         container.appendChild(card);
     }
 
@@ -568,9 +579,9 @@ async function loadAltcoinNews() {
     container.innerHTML = '';
     for (let i = 0; i < displayNews.length; i++) {
         const item = displayNews[i];
-        const titleRu = maxTranslations > 0 && i < maxTranslations 
-            ? await translateToRussian(item.title) 
-            : item.title;
+        const titleRu = maxTranslations > 0 && i < maxTranslations ?
+            await translateToRussian(item.title) :
+            item.title;
 
         const card = document.createElement('div');
         card.className = 'news-card';
@@ -578,11 +589,11 @@ async function loadAltcoinNews() {
         let thumbnailHtml = '';
         if (item.thumbnail && item.thumbnail.startsWith('http')) {
             thumbnailHtml = `
-                <div style="margin-bottom:8px;overflow:hidden;border-radius:6px;background:var(--bg-primary);">
-                    <img src="${item.thumbnail}" alt="" loading="lazy"
-                         style="width:100%;height:auto;max-height:160px;object-fit:cover;display:block;" />
-                </div>
-            `;
+                        <div style="margin-bottom:8px;overflow:hidden;border-radius:6px;background:var(--bg-primary);">
+                            <img src="${item.thumbnail}" alt="" loading="lazy"
+                                 style="width:100%;height:auto;max-height:160px;object-fit:cover;display:block;" />
+                        </div>
+                    `;
         }
 
         let mentionedCoin = '';
@@ -595,18 +606,18 @@ async function loadAltcoinNews() {
         }
 
         card.innerHTML = `
-            <div class="news-source">
-                <i class="fas fa-coins"></i>
-                ${mentionedCoin ? `🪙 ${mentionedCoin}` : 'Альткоин'}
-                <span style="margin-left:auto;color:var(--text-secondary);font-size:clamp(9px,0.8vw,11px);">
-                    ${item.published_at ? new Date(item.published_at).toLocaleDateString('ru-RU') : 'Сегодня'}
-                </span>
-                <span class="source-badge">${item.sourceName || ''}</span>
-                ${maxTranslations === 0 || i >= maxTranslations ? '<span class="source-badge" style="background:#848e9c;color:#fff;">EN</span>' : ''}
-            </div>
-            ${thumbnailHtml}
-            <h3><a href="${item.url}" target="_blank" rel="noopener">${titleRu}</a></h3>
-        `;
+                    <div class="news-source">
+                        <i class="fas fa-coins"></i>
+                        ${mentionedCoin ? `🪙 ${mentionedCoin}` : 'Альткоин'}
+                        <span style="margin-left:auto;color:var(--text-secondary);font-size:clamp(9px,0.8vw,11px);">
+                            ${item.published_at ? new Date(item.published_at).toLocaleDateString('ru-RU') : 'Сегодня'}
+                        </span>
+                        <span class="source-badge">${item.sourceName || ''}</span>
+                        ${maxTranslations === 0 || i >= maxTranslations ? '<span class="source-badge" style="background:#848e9c;color:#fff;">EN</span>' : ''}
+                    </div>
+                    ${thumbnailHtml}
+                    <h3><a href="${item.url}" target="_blank" rel="noopener">${titleRu}</a></h3>
+                `;
         container.appendChild(card);
     }
 }
@@ -625,7 +636,7 @@ async function sendNewsToTelegram(newsItems) {
 
     try {
         let message = '📰 *CoinDigest — Свежие новости*\n\n';
-        
+
         for (const item of toSend) {
             const title = item.title || 'Новость';
             const url = item.url || '#';
@@ -633,7 +644,7 @@ async function sendNewsToTelegram(newsItems) {
             message += `• [${titleRu}](${url})\n`;
             message += `   📌 ${item.source?.title || item.sourceName || 'Unknown'}\n\n`;
         }
-        
+
         message += `\n🔄 Обновлено: ${new Date().toLocaleString('ru-RU')}`;
 
         const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
@@ -683,11 +694,11 @@ async function loadCalendar() {
 
         if (events.length === 0) {
             container.innerHTML = `
-                <div class="calendar-empty">
-                    <i class="fas fa-calendar-times"></i>
-                    <p>Нет предстоящих событий</p>
-                </div>
-            `;
+                        <div class="calendar-empty">
+                            <i class="fas fa-calendar-times"></i>
+                            <p>Нет предстоящих событий</p>
+                        </div>
+                    `;
             return;
         }
 
@@ -704,7 +715,7 @@ async function loadCalendar() {
             const dateStr = date.toISOString().split('T')[0];
             const day = date.getDate().toString().padStart(2, '0');
             const month = date.toLocaleString('ru', { month: 'short' });
-            
+
             let icon = '📅';
             const type = (event.type || '').toLowerCase();
             if (type.includes('conference')) icon = '🎤';
@@ -717,18 +728,18 @@ async function loadCalendar() {
             const card = document.createElement('div');
             card.className = 'calendar-event';
             card.innerHTML = `
-                <div class="event-date">
-                    ${day}
-                    <span class="month">${month}</span>
-                </div>
-                <div class="event-icon">${icon}</div>
-                <div class="event-info">
-                    <div class="event-title">${event.name || 'Событие'}</div>
-                    ${event.description ? `<div class="event-desc">${event.description.substring(0, 120)}...</div>` : ''}
-                    <span class="event-tag">${event.type || 'Событие'}</span>
-                    ${event.coins && event.coins.length > 0 ? ` <span class="event-tag" style="background:rgba(14,203,129,0.12);color:#0ecb81;">${event.coins.map(c => c.symbol.toUpperCase()).join(', ')}</span>` : ''}
-                </div>
-            `;
+                        <div class="event-date">
+                            ${day}
+                            <span class="month">${month}</span>
+                        </div>
+                        <div class="event-icon">${icon}</div>
+                        <div class="event-info">
+                            <div class="event-title">${event.name || 'Событие'}</div>
+                            ${event.description ? `<div class="event-desc">${event.description.substring(0, 120)}...</div>` : ''}
+                            <span class="event-tag">${event.type || 'Событие'}</span>
+                            ${event.coins && event.coins.length > 0 ? ` <span class="event-tag" style="background:rgba(14,203,129,0.12);color:#0ecb81;">${event.coins.map(c => c.symbol.toUpperCase()).join(', ')}</span>` : ''}
+                        </div>
+                    `;
             container.appendChild(card);
 
             if (dateStr === today) todayEvents.push(event);
@@ -754,21 +765,21 @@ async function loadCalendar() {
                 const dateStr = date.toISOString().split('T')[0];
                 const day = date.getDate().toString().padStart(2, '0');
                 const month = date.toLocaleString('ru', { month: 'short' });
-                
+
                 const card = document.createElement('div');
                 card.className = 'calendar-event';
                 card.innerHTML = `
-                    <div class="event-date">
-                        ${day}
-                        <span class="month">${month}</span>
-                    </div>
-                    <div class="event-icon">📅</div>
-                    <div class="event-info">
-                        <div class="event-title">${event.name}</div>
-                        <div class="event-desc">${event.description}</div>
-                        <span class="event-tag">${event.type}</span>
-                    </div>
-                `;
+                            <div class="event-date">
+                                ${day}
+                                <span class="month">${month}</span>
+                            </div>
+                            <div class="event-icon">📅</div>
+                            <div class="event-info">
+                                <div class="event-title">${event.name}</div>
+                                <div class="event-desc">${event.description}</div>
+                                <span class="event-tag">${event.type}</span>
+                            </div>
+                        `;
                 container.appendChild(card);
 
                 if (dateStr === today) todayEvents.push(event);
@@ -778,12 +789,12 @@ async function loadCalendar() {
             await sendCalendarToTelegram(todayEvents, tomorrowEvents);
         } else {
             container.innerHTML = `
-                <div class="calendar-empty">
-                    <i class="fas fa-exclamation-triangle" style="color:var(--red);"></i>
-                    <p>Не удалось загрузить события</p>
-                    <button onclick="loadCalendar()" style="margin-top:12px;padding:8px 20px;background:var(--accent);border:none;border-radius:8px;color:#0b0e11;font-weight:600;cursor:pointer;">Повторить</button>
-                </div>
-            `;
+                        <div class="calendar-empty">
+                            <i class="fas fa-exclamation-triangle" style="color:var(--red);"></i>
+                            <p>Не удалось загрузить события</p>
+                            <button onclick="loadCalendar()" style="margin-top:12px;padding:8px 20px;background:var(--accent);border:none;border-radius:8px;color:#0b0e11;font-weight:600;cursor:pointer;">Повторить</button>
+                        </div>
+                    `;
         }
     }
 }
@@ -795,7 +806,7 @@ async function sendCalendarToTelegram(todayEvents, tomorrowEvents) {
 
     const todayKey = new Date().toISOString().split('T')[0];
     const sentKey = `calendar_sent_${todayKey}`;
-    
+
     if (LS.get(sentKey)) {
         console.log('ℹ️ Календарь уже отправлен сегодня');
         return;
@@ -956,14 +967,14 @@ function createNotificationBanner() {
     banner.id = 'notificationBanner';
     banner.className = 'notification-banner';
     banner.innerHTML = `
-        <div class="notif-content">
-            <div class="notif-icon"><i class="fas fa-bell"></i></div>
-            <div class="notif-text">Новое уведомление</div>
-            <button class="notif-close" onclick="this.closest('.notification-banner').classList.remove('show')">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-    `;
+                <div class="notif-content">
+                    <div class="notif-icon"><i class="fas fa-bell"></i></div>
+                    <div class="notif-text">Новое уведомление</div>
+                    <button class="notif-close" onclick="this.closest('.notification-banner').classList.remove('show')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
     document.body.appendChild(banner);
 }
 
@@ -984,7 +995,7 @@ function requestNotificationPermission() {
 }
 
 // ============================================
-// ===== РЕКЛАМА (ИСПРАВЛЕНА) =====
+// ===== РЕКЛАМА (ПОЛНОСТЬЮ ИСПРАВЛЕНА) =====
 // ============================================
 
 function loadAd() {
@@ -993,7 +1004,7 @@ function loadAd() {
         console.log('⚠️ Контейнер рекламы не найден');
         return;
     }
-    
+
     const ads = LS.get('ads') || [];
 
     if (!ads || ads.length === 0) {
@@ -1001,7 +1012,6 @@ function loadAd() {
         return;
     }
 
-    // Если индекс вышел за пределы — сбрасываем
     if (currentAdIndex >= ads.length) {
         currentAdIndex = 0;
     }
@@ -1023,24 +1033,28 @@ function loadAd() {
 function showAd(ads, index) {
     const container = document.getElementById('adContainer');
     if (!container) return;
-    
+
     const ad = ads[index];
     if (!ad) {
         container.innerHTML = '';
         return;
     }
 
-    // Увеличиваем счётчик показов
     trackAdShow(ad.id);
 
     let html = '<div class="ad-content" style="text-align:center;">';
-    
+
     if (ad.type === 'image' || ad.type === 'gif') {
+        // Изображение
         html += `<img src="${ad.url}" alt="${ad.name || 'Реклама'}" loading="lazy" style="max-width:100%;max-height:200px;border-radius:8px;cursor:pointer;" onclick="trackAdClick('${ad.id}')" />`;
         if (ad.text) {
             html += `<div style="margin-top:8px;font-size:14px;color:var(--text-secondary);">${ad.text}</div>`;
         }
+        if (ad.link) {
+            html += `<div style="margin-top:6px;"><a href="${ad.link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-weight:500;cursor:pointer;" onclick="trackAdClick('${ad.id}', true)">${ad.text || 'Подробнее'}</a></div>`;
+        }
     } else if (ad.type === 'video') {
+        // Видео
         html += `<video controls autoplay muted loop style="max-width:100%;max-height:200px;border-radius:8px;cursor:pointer;" onclick="trackAdClick('${ad.id}')">
                     <source src="${ad.url}" type="video/mp4">
                     Ваш браузер не поддерживает видео
@@ -1048,14 +1062,19 @@ function showAd(ads, index) {
         if (ad.text) {
             html += `<div style="margin-top:8px;font-size:14px;color:var(--text-secondary);">${ad.text}</div>`;
         }
+        if (ad.link) {
+            html += `<div style="margin-top:6px;"><a href="${ad.link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-weight:500;cursor:pointer;" onclick="trackAdClick('${ad.id}', true)">${ad.text || 'Подробнее'}</a></div>`;
+        }
     } else if (ad.type === 'link') {
-        html += `<a href="${ad.link}" target="_blank" rel="noopener" style="display:inline-block;padding:12px 28px;background:var(--accent);color:#0b0e11;border-radius:8px;font-weight:600;text-decoration:none;transition:opacity 0.3s;cursor:pointer;" onclick="trackAdClick('${ad.id}', true)">
+        // Ссылка (кнопка)
+        html += `<a href="${ad.link}" target="_blank" rel="noopener" style="display:inline-block;padding:14px 32px;background:var(--accent);color:#0b0e11;border-radius:8px;font-weight:600;text-decoration:none;transition:opacity 0.3s;cursor:pointer;" onclick="trackAdClick('${ad.id}', true)">
                     ${ad.text || 'Перейти по ссылке'}
                 </a>`;
     } else if (ad.type === 'html') {
+        // HTML код
         html += ad.text;
     }
-    
+
     html += '</div>';
     container.innerHTML = html;
 }
@@ -1092,11 +1111,11 @@ async function loadExclusivePosts() {
             const card = document.createElement('div');
             card.className = 'post-card';
             card.innerHTML = `
-                <h3>${post.url ? `<a href="${post.url}" target="_blank">${post.title}</a>` : post.title}</h3>
-                <div class="date">${post.date}</div>
-                <p>${post.content ? post.content.substring(0, 120) + (post.content.length > 120 ? '...' : '') : ''}</p>
-                ${post.isExclusive ? '<span style="display:inline-block;background:var(--accent);color:var(--bg-primary);font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;margin-top:6px;">⭐ ЭКСКЛЮЗИВ</span>' : ''}
-            `;
+                        <h3>${post.url ? `<a href="${post.url}" target="_blank">${post.title}</a>` : post.title}</h3>
+                        <div class="date">${post.date}</div>
+                        <p>${post.content ? post.content.substring(0, 120) + (post.content.length > 120 ? '...' : '') : ''}</p>
+                        ${post.isExclusive ? '<span style="display:inline-block;background:var(--accent);color:var(--bg-primary);font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;margin-top:6px;">⭐ ЭКСКЛЮЗИВ</span>' : ''}
+                    `;
             container.appendChild(card);
         });
     } catch (error) {
@@ -1168,11 +1187,11 @@ function renderAutoPosts(posts) {
         const card = document.createElement('div');
         card.className = 'post-card';
         card.innerHTML = `
-            <h3><a href="${post.url}" target="_blank">${post.title}</a></h3>
-            <div class="date">${post.date}</div>
-            <p>${post.content ? post.content.substring(0, 120) + (post.content.length > 120 ? '...' : '') : 'Эксклюзивный материал'}</p>
-            ${post.isExclusive ? '<span style="display:inline-block;background:var(--accent);color:var(--bg-primary);font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;margin-top:6px;">⭐ ЭКСКЛЮЗИВ</span>' : ''}
-        `;
+                    <h3><a href="${post.url}" target="_blank">${post.title}</a></h3>
+                    <div class="date">${post.date}</div>
+                    <p>${post.content ? post.content.substring(0, 120) + (post.content.length > 120 ? '...' : '') : 'Эксклюзивный материал'}</p>
+                    ${post.isExclusive ? '<span style="display:inline-block;background:var(--accent);color:var(--bg-primary);font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;margin-top:6px;">⭐ ЭКСКЛЮЗИВ</span>' : ''}
+                `;
         container.appendChild(card);
     });
 }
@@ -1370,7 +1389,7 @@ async function checkAndSendAnalysis() {
         const key = `morning_${dateKey}`;
         if (LS.get(key)) return;
         LS.set(key, true);
-        
+
         console.log('📊 Генерируем утренний анализ (Москва)...');
         const analysis = await generateCryptoAnalysis();
         await sendAnalysisToTelegram(analysis);
@@ -1380,7 +1399,7 @@ async function checkAndSendAnalysis() {
         const key = `evening_${dateKey}`;
         if (LS.get(key)) return;
         LS.set(key, true);
-        
+
         console.log('📊 Генерируем вечерний анализ (Москва)...');
         const analysis = await generateCryptoAnalysis();
         await sendAnalysisToTelegram(analysis);
@@ -1456,9 +1475,9 @@ document.addEventListener('DOMContentLoaded', function() {
             mobileMenu.classList.toggle('open');
             const icon = this.querySelector('i');
             if (icon) {
-                icon.className = mobileMenu.classList.contains('open')
-                    ? 'fas fa-times'
-                    : 'fas fa-bars';
+                icon.className = mobileMenu.classList.contains('open') ?
+                    'fas fa-times' :
+                    'fas fa-bars';
             }
         });
 
@@ -1474,7 +1493,6 @@ document.addEventListener('DOMContentLoaded', function() {
     setupTabs();
     trackVisit();
     setTimeout(requestNotificationPermission, 2000);
-    // Загружаем рекламу сразу
     loadAd();
 });
 
