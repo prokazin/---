@@ -38,16 +38,20 @@
     <!-- МОБИЛЬНОЕ МЕНЮ -->
     <div class="mobile-menu glass" id="mobileMenu">
         <a href="#" class="active" data-tab="main"><i class="fas fa-home"></i> Главная</a>
+        <a href="#" data-tab="news"><i class="fas fa-newspaper"></i> Свежие новости</a>
         <a href="#" data-tab="altcoins"><i class="fas fa-coins"></i> Альткоины</a>
         <a href="#" data-tab="calendar"><i class="fas fa-calendar-alt"></i> Календарь</a>
     </div>
 
-    <!-- ВКЛАДКИ (WINDOWS 11 СТИЛЬ) -->
+    <!-- ВКЛАДКИ -->
     <div class="tabs-bar glass">
         <div class="container">
             <div class="tabs-wrapper">
                 <button class="tab-btn active" data-tab="main">
                     <i class="fas fa-home"></i> Главная
+                </button>
+                <button class="tab-btn" data-tab="news">
+                    <i class="fas fa-newspaper"></i> Свежие новости
                 </button>
                 <button class="tab-btn" data-tab="altcoins">
                     <i class="fas fa-coins"></i> Альткоины
@@ -59,7 +63,7 @@
         </div>
     </div>
 
-    <!-- БАННЕР -->
+    <!-- БАННЕР (чистый, без лишних окошек) -->
     <section class="banner glass">
         <div class="container">
             <div class="banner-content">
@@ -69,7 +73,7 @@
         </div>
     </section>
 
-    <!-- РЕКЛАМА -->
+    <!-- РЕКЛАМА (перенесена ниже) -->
     <section class="ad-section">
         <div class="container">
             <div id="adContainer" class="ad-container glass">
@@ -82,7 +86,7 @@
     <section class="content-section" id="contentSection">
         <div class="container">
 
-            <!-- ВКЛАДКА: ГЛАВНАЯ -->
+            <!-- ВКЛАДКА: ГЛАВНАЯ (только курсы + эксклюзивные) -->
             <div id="tabMain" class="tab-content active">
                 <!-- Топ криптовалют -->
                 <div class="section-header">
@@ -91,16 +95,6 @@
                 </div>
                 <div id="cryptoContainer" class="crypto-container">
                     <!-- Данные подгружаются через JS -->
-                </div>
-
-                <!-- Обычные новости -->
-                <div style="margin-top:32px;">
-                    <div class="section-header">
-                        <h2><i class="fas fa-newspaper"></i> Свежие новости</h2>
-                    </div>
-                    <div id="newsContainer" class="news-container">
-                        <!-- Новости подгружаются через JS -->
-                    </div>
                 </div>
 
                 <!-- Эксклюзивные материалы -->
@@ -112,6 +106,17 @@
                     <div id="postsContainer" class="posts-container">
                         <!-- Посты из data/posts.json + автоматический сбор -->
                     </div>
+                </div>
+            </div>
+
+            <!-- ВКЛАДКА: СВЕЖИЕ НОВОСТИ -->
+            <div id="tabNews" class="tab-content">
+                <div class="section-header">
+                    <h2><i class="fas fa-newspaper"></i> Свежие новости</h2>
+                    <span class="section-subtitle">Из разных источников</span>
+                </div>
+                <div id="newsContainer" class="news-container">
+                    <!-- Новости подгружаются через JS -->
                 </div>
             </div>
 
@@ -154,6 +159,7 @@
                 <div class="footer-links">
                     <h4>Разделы</h4>
                     <a href="#" data-tab="main">Главная</a>
+                    <a href="#" data-tab="news">Новости</a>
                     <a href="#" data-tab="altcoins">Альткоины</a>
                     <a href="#" data-tab="calendar">Календарь</a>
                 </div>
