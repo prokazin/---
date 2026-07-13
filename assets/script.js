@@ -510,6 +510,9 @@ async function loadNews() {
         `;
         container.appendChild(card);
     }
+
+    // Отправляем новые новости в Telegram
+    await sendNewNewsToTelegram(displayNews);
 }
 
 // ===== ЗАГРУЗКА НОВОСТЕЙ АЛЬТКОИНОВ =====
@@ -607,6 +610,66 @@ async function loadAltcoinNews() {
     }
 }
 
+// ===== ОТПРАВКА НОВЫХ НОВОСТЕЙ В TELEGRAM =====
+async function sendNewNewsToTelegram(newsItems) {
+    const BOT_TOKEN = '8422981212:AAFqUt5juqdC_l64q7FACOBw-mFL4f0hN8Y';
+    const CHAT_ID = '-1004345602790';
+
+    let sentTitles = LS.get('sentTitles') || [];
+    
+    const newItems = newsItems.filter(item => {
+        const title = item.title || 'Новость';
+        return !sentTitles.includes(title);
+    });
+
+    if (newItems.length === 0) {
+        console.log('ℹ️ Новых новостей для Telegram нет');
+        return;
+    }
+
+    const newTitles = newItems.map(item => item.title || 'Новость');
+    sentTitles = [...sentTitles, ...newTitles];
+    LS.set('sentTitles', sentTitles);
+
+    const toSend = newItems.slice(0, 3);
+
+    try {
+        let message = '📰 *CoinDigest — Свежие новости*\n\n';
+        
+        for (const item of toSend) {
+            const title = item.title || 'Новость';
+            const url = item.url || '#';
+            const titleRu = await translateToRussian(title);
+            message += `• [${titleRu}](${url})\n`;
+            message += `   📌 ${item.source?.title || item.sourceName || 'Unknown'}\n\n`;
+        }
+        
+        message += `\n🔄 Обновлено: ${new Date().toLocaleString('ru-RU')}`;
+
+        const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: CHAT_ID,
+                text: message,
+                parse_mode: 'Markdown',
+                disable_web_page_preview: true,
+                disable_notification: false
+            })
+        });
+
+        const result = await response.json();
+        if (result.ok) {
+            console.log(`✅ Отправлено ${toSend.length} новых новостей в канал`);
+        } else {
+            console.error('❌ Ошибка Telegram:', result.description);
+        }
+    } catch (error) {
+        console.error('❌ Ошибка отправки в Telegram:', error);
+    }
+}
+
 // ===== КРИПТО-КАЛЕНДАРЬ =====
 async function loadCalendar() {
     const container = document.getElementById('calendarContainer');
@@ -639,8 +702,16 @@ async function loadCalendar() {
         }
 
         container.innerHTML = '';
+        const today = new Date().toISOString().split('T')[0];
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowStr = tomorrow.toISOString().split('T')[0];
+        let todayEvents = [];
+        let tomorrowEvents = [];
+
         events.forEach(event => {
             const date = new Date(event.event_date || event.date);
+            const dateStr = date.toISOString().split('T')[0];
             const day = date.getDate().toString().padStart(2, '0');
             const month = date.toLocaleString('ru', { month: 'short' });
             
@@ -669,15 +740,29 @@ async function loadCalendar() {
                 </div>
             `;
             container.appendChild(card);
+
+            if (dateStr === today) todayEvents.push(event);
+            if (dateStr === tomorrowStr) tomorrowEvents.push(event);
         });
+
+        // Отправляем календарь в Telegram
+        await sendCalendarToTelegram(todayEvents, tomorrowEvents);
 
     } catch (error) {
         console.error('Ошибка загрузки календаря:', error);
         const events = getFallbackEvents();
         if (events.length > 0) {
             container.innerHTML = '';
+            const today = new Date().toISOString().split('T')[0];
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+            let todayEvents = [];
+            let tomorrowEvents = [];
+
             events.forEach(event => {
                 const date = new Date(event.date);
+                const dateStr = date.toISOString().split('T')[0];
                 const day = date.getDate().toString().padStart(2, '0');
                 const month = date.toLocaleString('ru', { month: 'short' });
                 
@@ -696,7 +781,12 @@ async function loadCalendar() {
                     </div>
                 `;
                 container.appendChild(card);
+
+                if (dateStr === today) todayEvents.push(event);
+                if (dateStr === tomorrowStr) tomorrowEvents.push(event);
             });
+
+            await sendCalendarToTelegram(todayEvents, tomorrowEvents);
         } else {
             container.innerHTML = `
                 <div class="calendar-empty">
@@ -706,6 +796,77 @@ async function loadCalendar() {
                 </div>
             `;
         }
+    }
+}
+
+// ===== ОТПРАВКА КАЛЕНДАРЯ В TELEGRAM =====
+async function sendCalendarToTelegram(todayEvents, tomorrowEvents) {
+    const BOT_TOKEN = '8422981212:AAFqUt5juqdC_l64q7FACOBw-mFL4f0hN8Y';
+    const CHAT_ID = '-1004345602790';
+
+    const todayKey = new Date().toISOString().split('T')[0];
+    const sentKey = `calendar_sent_${todayKey}`;
+    
+    // Проверяем, отправляли ли уже сегодня
+    if (LS.get(sentKey)) {
+        console.log('ℹ️ Календарь уже отправлен сегодня');
+        return;
+    }
+
+    let message = '📅 *Крипто-календарь CoinDigest*\n\n';
+    let hasEvents = false;
+
+    if (todayEvents.length > 0) {
+        hasEvents = true;
+        message += `*🔴 Сегодня:*\n`;
+        todayEvents.forEach(event => {
+            const title = event.name || 'Событие';
+            const type = event.type || 'Событие';
+            message += `  • ${title} (${type})\n`;
+        });
+        message += `\n`;
+    }
+
+    if (tomorrowEvents.length > 0) {
+        hasEvents = true;
+        message += `*🟡 Завтра:*\n`;
+        tomorrowEvents.forEach(event => {
+            const title = event.name || 'Событие';
+            const type = event.type || 'Событие';
+            message += `  • ${title} (${type})\n`;
+        });
+        message += `\n`;
+    }
+
+    if (!hasEvents) {
+        message += `*ℹ️ На сегодня и завтра событий нет.*\n\n`;
+    }
+
+    message += `🔗 *Подробнее:* https://coindigestonline.ru/`;
+
+    try {
+        const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: CHAT_ID,
+                text: message,
+                parse_mode: 'Markdown',
+                disable_web_page_preview: true,
+                disable_notification: false
+            })
+        });
+
+        const result = await response.json();
+        if (result.ok) {
+            console.log('✅ Календарь отправлен в канал');
+            LS.set(sentKey, true);
+        } else {
+            console.error('❌ Ошибка отправки календаря:', result.description);
+        }
+    } catch (error) {
+        console.error('❌ Ошибка отправки календаря:', error);
     }
 }
 
