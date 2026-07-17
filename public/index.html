@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>CoinDigest — Крипто-новости</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    
+    <!-- Telegram Mini App -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <!-- ШАПКА -->
+    <header class="header">
+        <div class="container">
+            <div class="logo"><i class="fas fa-coins"></i><span>CoinDigest</span></div>
+            <div class="header-right">
+                <div class="last-update"><i class="fas fa-sync-alt fa-spin"></i><span id="updateTime">Обновление: ...</span></div>
+                <button class="mobile-menu-btn" id="mobileMenuBtn"><i class="fas fa-bars"></i></button>
+            </div>
+        </div>
+    </header>
+
+    <!-- МОБИЛЬНОЕ МЕНЮ -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="#" data-tab="main" class="active">Главная</a>
+        <a href="#" data-tab="news">Новости</a>
+        <a href="#" data-tab="calendar">Календарь</a>
+    </div>
+
+    <!-- ВКЛАДКИ -->
+    <div class="tabs-bar">
+        <div class="container">
+            <button class="tab-btn active" data-tab="main">Главная</button>
+            <button class="tab-btn" data-tab="news">Новости</button>
+            <button class="tab-btn" data-tab="calendar">Календарь</button>
+        </div>
+    </div>
+
+    <!-- БАННЕР -->
+    <section class="banner">
+        <div class="container">
+            <h1>Актуальные новости <span>крипторынка</span></h1>
+            <p>Цены, аналитика и тренды — в одном месте</p>
+        </div>
+    </section>
+
+    <!-- КОНТЕНТ -->
+    <section class="content">
+        <div class="container">
+            <!-- Главная -->
+            <div id="tabMain" class="tab-content active">
+                <div id="cryptoContainer" class="crypto-grid">
+                    <div class="skeleton">Загрузка...</div>
+                </div>
+                <div id="postsContainer" class="posts-grid"></div>
+            </div>
+            
+            <!-- Новости -->
+            <div id="tabNews" class="tab-content">
+                <div id="newsContainer" class="news-grid">
+                    <div class="skeleton">Загрузка новостей...</div>
+                </div>
+            </div>
+            
+            <!-- Календарь -->
+            <div id="tabCalendar" class="tab-content">
+                <div id="calendarContainer" class="calendar-grid">
+                    <div class="skeleton">Загрузка событий...</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="script.js"></script>
+</body>
+</html>
