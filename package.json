@@ -1,7 +1,7 @@
 {
   "name": "coindigest",
   "version": "1.0.0",
-  "description": "CoinDigest — крипто-дайджест на Vercel",
+  "description": "CoinDigest — крипто-дайджест для Telegram Mini App",
   "main": "api/news.js",
   "scripts": {
     "dev": "vercel dev",
