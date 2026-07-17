@@ -1,6 +1,12 @@
 {
   "name": "coindigest",
   "version": "1.0.0",
+  "description": "CoinDigest — крипто-дайджест на Vercel",
+  "main": "api/news.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
   "dependencies": {},
   "devDependencies": {
     "@vercel/node": "^2.0.0"
