@@ -1,15 +1,24 @@
 // ===== api/news.js — Vercel Serverless Function =====
-// Запускается по расписанию или при запросе
+// Вызывается через cron-job.org или вручную
 
 export default async function handler(req, res) {
-    // Разрешаем только GET запросы
-    if (req.method !== 'GET') {
+    // Разрешаем GET и POST запросы
+    if (req.method !== 'GET' && req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    // Защита от случайных запросов (секретный ключ)
+    const secret = req.query.secret || req.body?.secret;
+    if (secret !== 'coindigest_2026') {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     try {
+        console.log('📡 Начинаем сбор новостей...');
+        
         // 1. Собираем новости
         const news = await fetchNews();
+        console.log(`📰 Собрано ${news.length} новостей`);
         
         // 2. Отправляем в Telegram
         const telegramResult = await sendToTelegram(news);
@@ -19,7 +28,8 @@ export default async function handler(req, res) {
             success: true, 
             newsCount: news.length,
             sent: telegramResult.sent,
-            message: telegramResult.message || 'OK'
+            message: telegramResult.message || 'OK',
+            timestamp: new Date().toISOString()
         });
     } catch (error) {
         console.error('❌ Ошибка:', error);
@@ -71,7 +81,10 @@ async function fetchNews() {
     for (const source of NEWS_SOURCES) {
         try {
             const response = await fetch(source.url);
-            if (!response.ok) continue;
+            if (!response.ok) {
+                console.warn(`⚠️ ${source.name}: HTTP ${response.status}`);
+                continue;
+            }
             
             const data = await response.json();
             let items = [];
@@ -112,6 +125,25 @@ function shuffleArray(array) {
     return array;
 }
 
+// === ПЕРЕВОД НА РУССКИЙ (ОПЦИОНАЛЬНО) ===
+async function translateToRussian(text) {
+    if (!text) return 'Новость';
+    if (/[а-яА-Я]/.test(text)) return text;
+    
+    try {
+        const response = await fetch(
+            `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|ru`
+        );
+        const data = await response.json();
+        if (data.responseData && data.responseData.translatedText) {
+            return data.responseData.translatedText;
+        }
+    } catch (e) {
+        console.debug('Ошибка перевода:', e.message);
+    }
+    return text;
+}
+
 // === ОТПРАВКА В TELEGRAM ===
 async function sendToTelegram(newsItems) {
     if (!newsItems || newsItems.length === 0) {
@@ -122,12 +154,12 @@ async function sendToTelegram(newsItems) {
     const toSend = newsItems.slice(0, 5);
     
     let message = '📰 *CoinDigest — Свежие новости*\n\n';
-    toSend.forEach((item, index) => {
-        const title = item.title || 'Новость';
+    for (const item of toSend) {
+        const title = await translateToRussian(item.title || 'Новость');
         const url = item.url || '#';
-        message += `${index + 1}. [${title}](${url})\n`;
+        message += `• [${title}](${url})\n`;
         message += `   📌 ${item.source || 'Unknown'}\n\n`;
-    });
+    }
     message += `\n🔄 Обновлено: ${new Date().toLocaleString('ru-RU')}`;
     message += `\n🔗 Читать все: https://coindigestonline.ru/`;
     
