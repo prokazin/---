@@ -1,13 +1,13 @@
 // ===== api/news.js — Vercel Serverless Function =====
-// Вызывается через cron-job.org или вручную
+// Вызывается через cron-job.org каждые 30 минут
 
 export default async function handler(req, res) {
-    // Разрешаем GET и POST запросы
+    // Разрешаем только GET и POST
     if (req.method !== 'GET' && req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    // Защита от случайных запросов (секретный ключ)
+    // Защита от случайных запросов
     const secret = req.query.secret || req.body?.secret;
     if (secret !== 'coindigest_2026') {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -23,12 +23,12 @@ export default async function handler(req, res) {
         // 2. Отправляем в Telegram
         const telegramResult = await sendToTelegram(news);
         
-        // 3. Возвращаем результат
-        return res.status(200).json({ 
-            success: true, 
+        return res.status(200).json({
+            success: true,
             newsCount: news.length,
             sent: telegramResult.sent,
             message: telegramResult.message || 'OK',
+            news: news.slice(0, 10),
             timestamp: new Date().toISOString()
         });
     } catch (error) {
@@ -37,11 +37,17 @@ export default async function handler(req, res) {
     }
 }
 
+// ============================================
 // === КОНФИГ ===
+// ============================================
+
 const BOT_TOKEN = '8422981212:AAFqUt5juqdC_l64q7FACOBw-mFL4f0hN8Y';
 const CHAT_ID = '-1004345602790';
 
+// ============================================
 // === ИСТОЧНИКИ НОВОСТЕЙ ===
+// ============================================
+
 const NEWS_SOURCES = [
     {
         name: 'CoinDesk',
@@ -74,7 +80,10 @@ const NEWS_SOURCES = [
     }
 ];
 
+// ============================================
 // === ЗАГРУЗКА НОВОСТЕЙ ===
+// ============================================
+
 async function fetchNews() {
     let allNews = [];
     
@@ -89,11 +98,9 @@ async function fetchNews() {
             const data = await response.json();
             let items = [];
             
-            // Если есть специальный парсер — используем его
             if (source.parser) {
                 items = source.parser(data);
             } else {
-                // Стандартный парсер для RSS2JSON
                 if (data && data.items) {
                     items = data.items.slice(0, 3).map(item => ({
                         title: item.title,
@@ -111,12 +118,14 @@ async function fetchNews() {
         }
     }
     
-    // Перемешиваем и берём первые 10
     allNews = shuffleArray(allNews);
     return allNews.slice(0, 10);
 }
 
+// ============================================
 // === ПЕРЕМЕШИВАНИЕ ===
+// ============================================
+
 function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -125,7 +134,10 @@ function shuffleArray(array) {
     return array;
 }
 
-// === ПЕРЕВОД НА РУССКИЙ (ОПЦИОНАЛЬНО) ===
+// ============================================
+// === ПЕРЕВОД НА РУССКИЙ ===
+// ============================================
+
 async function translateToRussian(text) {
     if (!text) return 'Новость';
     if (/[а-яА-Я]/.test(text)) return text;
@@ -144,13 +156,15 @@ async function translateToRussian(text) {
     return text;
 }
 
+// ============================================
 // === ОТПРАВКА В TELEGRAM ===
+// ============================================
+
 async function sendToTelegram(newsItems) {
     if (!newsItems || newsItems.length === 0) {
         return { sent: false, message: 'Нет новостей' };
     }
     
-    // Берём первые 5 новостей
     const toSend = newsItems.slice(0, 5);
     
     let message = '📰 *CoinDigest — Свежие новости*\n\n';
