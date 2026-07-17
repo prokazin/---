@@ -11,8 +11,12 @@ try {
 // === ЗАГРУЗКА КРИПТОВАЛЮТ ===
 async function loadCrypto() {
     const container = document.getElementById('cryptoContainer');
+    if (!container) return;
+    
+    container.innerHTML = '<div class="skeleton">Загрузка...</div>';
     try {
         const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=12&page=1&sparkline=false');
+        if (!response.ok) throw new Error('HTTP ' + response.status);
         const data = await response.json();
         container.innerHTML = '';
         data.forEach(coin => {
@@ -26,7 +30,7 @@ async function loadCrypto() {
                         ${coin.name}
                         <span class="symbol">${coin.symbol.toUpperCase()}</span>
                     </div>
-                    <div class="price">$${coin.current_price.toLocaleString()}</div>
+                    <div class="price">$${coin.current_price ? coin.current_price.toLocaleString() : '0'}</div>
                     <div class="change ${cls}">${sign}${change.toFixed(2)}%</div>
                 </div>
             `;
@@ -34,31 +38,116 @@ async function loadCrypto() {
         document.getElementById('updateTime').textContent = 'Обновление: ' + new Date().toLocaleTimeString();
     } catch (e) {
         container.innerHTML = '<p class="skeleton">⚠️ Не удалось загрузить данные</p>';
+        console.error('Ошибка загрузки криптовалют:', e);
     }
 }
 
-// === ЗАГРУЗКА НОВОСТЕЙ ===
+// === ЗАГРУЗКА НОВОСТЕЙ (С ВЕРСЕЛЯ) ===
 async function loadNews() {
     const container = document.getElementById('newsContainer');
+    if (!container) return;
+    
+    container.innerHTML = '<div class="skeleton">Загрузка новостей...</div>';
     try {
         const response = await fetch('/api/news');
+        if (!response.ok) throw new Error('HTTP ' + response.status);
         const data = await response.json();
-        if (data.news && data.news.length > 0) {
-            container.innerHTML = '';
-            data.news.slice(0, 6).forEach(item => {
-                container.innerHTML += `
-                    <div class="news-card">
-                        <div class="source">${item.source} • ${new Date(item.published_at).toLocaleDateString('ru-RU')}</div>
-                        <h3><a href="${item.url}" target="_blank">${item.title}</a></h3>
-                        <span class="badge">Новость</span>
-                    </div>
-                `;
-            });
+        
+        if (data.success && data.newsCount > 0) {
+            // Если API вернул новости — показываем их
+            const newsResponse = await fetch('/api/news');
+            const newsData = await newsResponse.json();
+            // Загружаем новости с сайта
+            const newsList = await loadNewsFromApi();
+            if (newsList && newsList.length > 0) {
+                container.innerHTML = '';
+                newsList.slice(0, 6).forEach(item => {
+                    container.innerHTML += `
+                        <div class="news-card">
+                            <div class="source">${item.source || 'Unknown'} • ${item.published_at ? new Date(item.published_at).toLocaleDateString('ru-RU') : ''}</div>
+                            <h3><a href="${item.url}" target="_blank">${item.title}</a></h3>
+                            <span class="badge">Новость</span>
+                        </div>
+                    `;
+                });
+            } else {
+                container.innerHTML = '<p class="skeleton">Новостей пока нет</p>';
+            }
         } else {
             container.innerHTML = '<p class="skeleton">Новостей пока нет</p>';
         }
     } catch (e) {
         container.innerHTML = '<p class="skeleton">⚠️ Не удалось загрузить новости</p>';
+        console.error('Ошибка загрузки новостей:', e);
+    }
+}
+
+// === ЗАГРУЗКА НОВОСТЕЙ С API ===
+async function loadNewsFromApi() {
+    try {
+        const response = await fetch('/api/news');
+        const data = await response.json();
+        // Если есть результат — возвращаем новости
+        if (data.success) {
+            // Получаем новости с сервера
+            const newsData = await fetch('/api/news');
+            const result = await newsData.json();
+            return result.news || [];
+        }
+        return [];
+    } catch (e) {
+        console.error('Ошибка загрузки новостей с API:', e);
+        return [];
+    }
+}
+
+// === ЗАГРУЗКА КАЛЕНДАРЯ ===
+async function loadCalendar() {
+    const container = document.getElementById('calendarContainer');
+    if (!container) return;
+    
+    container.innerHTML = '<div class="skeleton">Загрузка событий...</div>';
+    try {
+        const response = await fetch('https://api.coingecko.com/api/v3/events?page=1');
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        const data = await response.json();
+        
+        if (data && data.data && data.data.length > 0) {
+            const events = data.data.slice(0, 10);
+            container.innerHTML = '';
+            events.forEach(event => {
+                const date = new Date(event.event_date);
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = date.toLocaleString('ru', { month: 'short' });
+                let icon = '📅';
+                const type = (event.type || '').toLowerCase();
+                if (type.includes('conference')) icon = '🎤';
+                else if (type.includes('fork')) icon = '🔧';
+                else if (type.includes('sale')) icon = '💰';
+                else if (type.includes('launch')) icon = '🚀';
+                else if (type.includes('deadline')) icon = '⏰';
+                
+                container.innerHTML += `
+                    <div class="calendar-event">
+                        <div class="date">
+                            ${day}
+                            <span class="month">${month}</span>
+                        </div>
+                        <div class="icon">${icon}</div>
+                        <div class="info">
+                            <div class="title">${event.name || 'Событие'}</div>
+                            ${event.description ? `<div class="desc">${event.description.substring(0, 120)}...</div>` : ''}
+                            <span class="tag">${event.type || 'Событие'}</span>
+                        </div>
+                    </div>
+                `;
+            });
+        } else {
+            container.innerHTML = '<p class="skeleton">Нет предстоящих событий</p>';
+        }
+    } catch (e) {
+        container.innerHTML = '<p class="skeleton">⚠️ Не удалось загрузить события</p>';
+        console.error('Ошибка загрузки календаря:', e);
     }
 }
 
@@ -74,12 +163,12 @@ function setupTabs() {
     
     function switchTab(name) {
         Object.keys(contents).forEach(key => {
-            contents[key].classList.toggle('active', key === name);
+            if (contents[key]) contents[key].classList.toggle('active', key === name);
         });
         tabs.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === name));
         mobileLinks.forEach(link => link.classList.toggle('active', link.dataset.tab === name));
         
-        if (name === 'main') { loadCrypto(); loadPosts(); }
+        if (name === 'main') { loadCrypto(); }
         else if (name === 'news') { loadNews(); }
         else if (name === 'calendar') { loadCalendar(); }
     }
@@ -88,23 +177,25 @@ function setupTabs() {
     mobileLinks.forEach(link => link.addEventListener('click', (e) => {
         e.preventDefault();
         switchTab(link.dataset.tab);
-        document.getElementById('mobileMenu').classList.remove('open');
+        const mobileMenu = document.getElementById('mobileMenu');
+        if (mobileMenu) mobileMenu.classList.remove('open');
     }));
     
     switchTab('main');
 }
 
 // === МОБИЛЬНОЕ МЕНЮ ===
-document.getElementById('mobileMenuBtn').addEventListener('click', () => {
-    document.getElementById('mobileMenu').classList.toggle('open');
-});
+const menuBtn = document.getElementById('mobileMenuBtn');
+if (menuBtn) {
+    menuBtn.addEventListener('click', () => {
+        document.getElementById('mobileMenu').classList.toggle('open');
+    });
+}
 
 // === ЗАПУСК ===
 document.addEventListener('DOMContentLoaded', () => {
     setupTabs();
     loadCrypto();
-    loadPosts();
-    loadCalendar();
 });
 
 // === ПЕРИОДИЧЕСКОЕ ОБНОВЛЕНИЕ ===
