@@ -1,0 +1,8 @@
+{
+  "name": "coindigest",
+  "version": "1.0.0",
+  "dependencies": {},
+  "devDependencies": {
+    "@vercel/node": "^2.0.0"
+  }
+}
