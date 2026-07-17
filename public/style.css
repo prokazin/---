@@ -1,0 +1,98 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+    --bg: #0b0e11;
+    --bg2: #1e2329;
+    --text: #eaecef;
+    --text2: #848e9c;
+    --accent: #f0b90b;
+    --green: #0ecb81;
+    --red: #f6465d;
+    --border: #2b3139;
+    --radius: 12px;
+    --shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+.container { max-width: 1280px; margin: 0 auto; padding: 0 16px; }
+.skeleton { background: var(--bg2); padding: 20px; border-radius: var(--radius); text-align: center; color: var(--text2); }
+
+/* ШАПКА */
+.header { background: rgba(11,14,17,0.85); backdrop-filter: blur(20px); padding: 12px 0; border-bottom: 2px solid var(--accent); position: sticky; top: 0; z-index: 100; }
+.header .container { display: flex; justify-content: space-between; align-items: center; }
+.logo { font-size: 22px; font-weight: 800; color: var(--accent); display: flex; align-items: center; gap: 8px; }
+.logo i { font-size: 26px; }
+.last-update { font-size: 12px; color: var(--text2); display: flex; align-items: center; gap: 4px; }
+.mobile-menu-btn { display: none; background: none; border: none; color: var(--text); font-size: 24px; cursor: pointer; }
+
+/* МОБИЛЬНОЕ МЕНЮ */
+.mobile-menu { display: none; background: var(--bg2); padding: 10px 16px; flex-direction: column; gap: 4px; border-bottom: 1px solid var(--border); }
+.mobile-menu.open { display: flex; }
+.mobile-menu a { color: var(--text2); text-decoration: none; padding: 10px 14px; border-radius: 8px; }
+.mobile-menu a:hover, .mobile-menu a.active { background: var(--border); color: var(--text); }
+
+/* ВКЛАДКИ */
+.tabs-bar { background: rgba(11,14,17,0.6); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); padding: 6px 0; position: sticky; top: 60px; z-index: 99; }
+.tabs-bar .container { display: flex; gap: 4px; justify-content: center; }
+.tab-btn { background: transparent; border: none; color: var(--text2); padding: 8px 24px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: 0.3s; font-family: inherit; }
+.tab-btn:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+.tab-btn.active { background: rgba(240,185,11,0.12); color: var(--accent); }
+
+/* БАННЕР */
+.banner { text-align: center; padding: 30px 0; border-bottom: 1px solid var(--border); background: rgba(11,14,17,0.5); }
+.banner h1 { font-size: 32px; font-weight: 800; }
+.banner h1 span { color: var(--accent); }
+.banner p { font-size: 16px; color: var(--text2); margin-top: 4px; }
+
+/* КОНТЕНТ */
+.content { padding: 20px 0; }
+.tab-content { display: none; animation: fade 0.3s ease; }
+.tab-content.active { display: block; }
+@keyframes fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* КРИПТОВАЛЮТЫ */
+.crypto-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+.crypto-card { background: var(--bg2); padding: 16px; border-radius: var(--radius); border: 1px solid var(--border); transition: 0.3s; }
+.crypto-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+.crypto-card .name { font-weight: 600; display: flex; align-items: center; gap: 8px; font-size: 15px; margin-bottom: 6px; }
+.crypto-card .name img { width: 24px; height: 24px; border-radius: 50%; }
+.crypto-card .symbol { color: var(--text2); font-weight: 400; font-size: 12px; margin-left: auto; }
+.crypto-card .price { font-size: 22px; font-weight: 700; margin: 4px 0 6px; }
+.crypto-card .change { font-size: 14px; font-weight: 600; padding: 2px 10px; border-radius: 6px; display: inline-block; }
+.change.positive { color: var(--green); background: rgba(14,203,129,0.15); }
+.change.negative { color: var(--red); background: rgba(246,70,93,0.15); }
+
+/* НОВОСТИ */
+.news-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.news-card { background: var(--bg2); padding: 16px; border-radius: var(--radius); border: 1px solid var(--border); transition: 0.3s; }
+.news-card:hover { border-color: var(--accent); }
+.news-card .source { font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+.news-card h3 { font-size: 15px; font-weight: 600; }
+.news-card h3 a { color: var(--text); text-decoration: none; }
+.news-card h3 a:hover { color: var(--accent); }
+.news-card .badge { display: inline-block; font-size: 10px; padding: 2px 10px; border-radius: 12px; background: rgba(240,185,11,0.15); color: var(--accent); margin-top: 6px; }
+
+/* КАЛЕНДАРЬ */
+.calendar-grid { display: grid; gap: 12px; }
+.calendar-event { display: flex; align-items: center; gap: 16px; background: var(--bg2); padding: 14px 20px; border-radius: var(--radius); border: 1px solid var(--border); transition: 0.3s; }
+.calendar-event:hover { border-color: var(--accent); }
+.calendar-event .date { display: flex; flex-direction: column; align-items: center; min-width: 50px; color: var(--accent); font-weight: 700; font-size: 20px; line-height: 1.2; }
+.calendar-event .date .month { font-size: 10px; text-transform: uppercase; color: var(--text2); font-weight: 500; }
+.calendar-event .icon { font-size: 24px; width: 40px; text-align: center; }
+.calendar-event .info { flex: 1; }
+.calendar-event .info .title { font-weight: 600; }
+.calendar-event .info .desc { font-size: 13px; color: var(--text2); }
+.calendar-event .info .tag { display: inline-block; font-size: 10px; padding: 2px 10px; border-radius: 12px; background: rgba(240,185,11,0.12); color: var(--accent); margin-top: 4px; }
+
+/* АДАПТИВ */
+@media (max-width: 768px) {
+    .mobile-menu-btn { display: block; }
+    .tabs-bar .container { justify-content: flex-start; overflow-x: auto; }
+    .tab-btn { padding: 6px 14px; font-size: 13px; }
+    .crypto-grid { grid-template-columns: repeat(2, 1fr); }
+    .news-grid { grid-template-columns: 1fr; }
+    .calendar-event { flex-wrap: wrap; }
+}
+@media (max-width: 480px) {
+    .crypto-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .banner h1 { font-size: 24px; }
+    .calendar-event .date { font-size: 16px; min-width: 40px; }
+}
