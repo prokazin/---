@@ -43,7 +43,7 @@ module.exports = async function handler(req, res) {
 // === КОНФИГ ===
 // ============================================
 
-const BOT_TOKEN = '8381752054:ВАШ_ПОЛНЫЙ_ТОКЕН';  // ← ЗАМЕНИТЕ
+const BOT_TOKEN = '8381752054:AAH6PbcijT-hDcgPn8iO_DPu1bwTO1Z5d08';  // ← ЗАМЕНИТЕ
 const CHAT_ID = '-1004427870334';
 const MINI_APP_URL = 'https://crypto-nine-opal.vercel.app/';
 
