@@ -2,273 +2,214 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    
-    <!-- ============================================ -->
-    <!-- ===== БАЗОВАЯ SEO ОПТИМИЗАЦИЯ ===== -->
-    <!-- ============================================ -->
-    
-    <title>CoinDigest — Крипто-новости, цены, альткоины и AI-анализ рынка</title>
-    <meta name="description" content="CoinDigest — автоматический крипто-дайджест. Свежие новости криптовалют, цены в реальном времени, альткоины, AI-анализ рынка и крипто-календарь. Будь в курсе событий!" />
-    <meta name="keywords" content="криптовалюта, криптоновости, биткоин, альткоины, цена биткоина, крипто-календарь, AI анализ, CoinDigest, крипто-дайджест, Ethereum, Solana, XRP, DOGE, крипто трейдинг, инвестиции" />
-    <meta name="robots" content="index, follow" />
-    <meta name="author" content="CoinDigest" />
-    <meta name="copyright" content="CoinDigest" />
-    <meta name="language" content="Russian" />
-    <meta name="revisit-after" content="1 day" />
-    <link rel="canonical" href="https://coindigestonline.ru/" />
-    
-    <!-- ============================================ -->
-    <!-- ===== OPEN GRAPH (для соцсетей) ===== -->
-    <!-- ============================================ -->
-    
-    <meta property="og:title" content="CoinDigest — Крипто-новости, цены и AI-анализ" />
-    <meta property="og:description" content="Актуальные новости криптовалют, цены топ-монет, альткоины, AI-анализ рынка и крипто-календарь в одном месте." />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://coindigestonline.ru/" />
-    <meta property="og:image" content="https://coindigestonline.ru/assets/og-image.jpg" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:locale" content="ru_RU" />
-    <meta property="og:site_name" content="CoinDigest" />
-    
-    <!-- ============================================ -->
-    <!-- ===== TWITTER CARDS ===== -->
-    <!-- ============================================ -->
-    
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="CoinDigest — Крипто-новости, цены и AI-анализ" />
-    <meta name="twitter:description" content="Актуальные новости криптовалют, цены, альткоины и AI-анализ рынка в одном месте." />
-    <meta name="twitter:image" content="https://coindigestonline.ru/assets/og-image.jpg" />
-    <meta name="twitter:site" content="@coindigest" />
-    
-    <!-- ============================================ -->
-    <!-- ===== МИКРОРАЗМЕТКА (Schema.org) ===== -->
-    <!-- ============================================ -->
-    
-    <script type="application/ld+json">
-    {
-        "@context": "https://schema.org",
-        "@type": "WebSite",
-        "name": "CoinDigest",
-        "url": "https://coindigestonline.ru/",
-        "description": "Автоматический крипто-дайджест с новостями, ценами и AI-анализом рынка",
-        "potentialAction": {
-            "@type": "SearchAction",
-            "target": "https://coindigestonline.ru/?s={search_term_string}",
-            "query-input": "required name=search_term_string"
-        }
-    }
-    </script>
-    
-    <script type="application/ld+json">
-    {
-        "@context": "https://schema.org",
-        "@type": "Organization",
-        "name": "CoinDigest",
-        "url": "https://coindigestonline.ru/",
-        "logo": "https://coindigestonline.ru/assets/logo.png",
-        "description": "Автоматический крипто-дайджест с новостями, ценами и AI-анализом рынка",
-        "sameAs": [
-            "https://t.me/coindigestnews",
-            "https://twitter.com/coindigest"
-        ]
-    }
-    </script>
-    
-    <!-- ============================================ -->
-    <!-- ===== ДОПОЛНИТЕЛЬНЫЕ МЕТА-ТЕГИ ===== -->
-    <!-- ============================================ -->
-    
-    <meta name="theme-color" content="#0b0e11" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="format-detection" content="telephone=no" />
-    <meta name="msapplication-TileColor" content="#0b0e11" />
-    <meta name="msapplication-config" content="assets/browserconfig.xml" />
-    
-    <!-- ============================================ -->
-    <!-- ===== FAVICON ===== -->
-    <!-- ============================================ -->
-    
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪙</text></svg>" />
-    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪙</text></svg>" />
-    
-    <!-- ============================================ -->
-    <!-- ===== СТИЛИ И ШРИФТЫ ===== -->
-    <!-- ============================================ -->
-    
-    <link rel="stylesheet" href="assets/style.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>CoinDigest — Крипто-новости и аналитика</title>
+    <meta name="description" content="CoinDigest — крипто-новости, цены, портфель и алерты в Telegram Mini App." />
+    <meta name="theme-color" content="#0B0E11" />
+    <link rel="stylesheet" href="style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    
-    <!-- Telegram Mini App -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-    <!-- ШАПКА -->
-    <header class="header glass">
-        <div class="container">
-            <div class="logo">
-                <i class="fas fa-coins"></i>
-                <span>CoinDigest</span>
-            </div>
-            <div class="header-right">
-                <div class="last-update">
-                    <i class="fas fa-sync-alt fa-spin"></i>
-                    <span id="updateTime">Обновление: ...</span>
-                </div>
-                <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Меню">
-                    <i class="fas fa-bars"></i>
-                </button>
-            </div>
-        </div>
-    </header>
 
-    <!-- МОБИЛЬНОЕ МЕНЮ -->
-    <div class="mobile-menu glass" id="mobileMenu">
-        <a href="#" class="active" data-tab="main"><i class="fas fa-home"></i> Главная</a>
-        <a href="#" data-tab="news"><i class="fas fa-newspaper"></i> Свежие новости</a>
-        <a href="#" data-tab="altcoins"><i class="fas fa-coins"></i> Альткоины</a>
-        <a href="#" data-tab="calendar"><i class="fas fa-calendar-alt"></i> Календарь</a>
+<!-- ===== ШАПКА ===== -->
+<header class="header">
+    <div class="logo">
+        <i class="fas fa-coins"></i>
+        <span>CoinDigest</span>
     </div>
-
-    <!-- ВКЛАДКИ -->
-    <div class="tabs-bar glass">
-        <div class="container">
-            <div class="tabs-wrapper">
-                <button class="tab-btn active" data-tab="main">
-                    <i class="fas fa-home"></i> Главная
-                </button>
-                <button class="tab-btn" data-tab="news">
-                    <i class="fas fa-newspaper"></i> Свежие новости
-                </button>
-                <button class="tab-btn" data-tab="altcoins">
-                    <i class="fas fa-coins"></i> Альткоины
-                </button>
-                <button class="tab-btn" data-tab="calendar">
-                    <i class="fas fa-calendar-alt"></i> Календарь
-                </button>
-            </div>
-        </div>
+    <div class="last-update">
+        <i class="fas fa-sync-alt"></i>
+        <span id="updateTime">—</span>
     </div>
+</header>
 
-    <!-- БАННЕР -->
-    <section class="banner glass">
-        <div class="container">
-            <div class="banner-content">
-                <h1>Актуальные новости <span>крипторынка</span></h1>
-                <p>Цены, аналитика и тренды — в одном месте</p>
+<!-- ===== ОСНОВНОЙ КОНТЕНТ ===== -->
+<main class="main">
+
+    <!-- ГЛАВНАЯ -->
+    <section class="page active" id="page-home">
+
+        <!-- Тренд рынка -->
+        <div class="card trend-card" id="trendCard">
+            <div class="trend-loading skeleton-block"></div>
+        </div>
+
+        <!-- Почему это важно -->
+        <div class="card" id="whyCard">
+            <div class="card-title">
+                <i class="fas fa-fire"></i>
+                <span>Почему это важно</span>
             </div>
+            <div id="whyContent" class="why-content">
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line short"></div>
+            </div>
+        </div>
+
+        <!-- Быстрые действия -->
+        <div class="quick-actions">
+            <button class="quick-btn" data-goto="portfolio">
+                <i class="fas fa-briefcase"></i>
+                <span>Портфель</span>
+            </button>
+            <button class="quick-btn" data-goto="alerts">
+                <i class="fas fa-bell"></i>
+                <span>Алерты</span>
+            </button>
+            <button class="quick-btn" data-goto="news">
+                <i class="fas fa-newspaper"></i>
+                <span>Все новости</span>
+            </button>
+        </div>
+
+        <!-- Топ-5 монет -->
+        <div class="card">
+            <div class="card-title">
+                <i class="fas fa-trophy"></i>
+                <span>Топ-5 монет</span>
+                <button class="link-btn" data-goto="market">Все <i class="fas fa-chevron-right"></i></button>
+            </div>
+            <div id="topCoins" class="top-coins">
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line"></div>
+            </div>
+        </div>
+
+        <!-- События дня -->
+        <div class="card">
+            <div class="card-title">
+                <i class="fas fa-calendar-alt"></i>
+                <span>События дня</span>
+                <button class="link-btn" data-goto="calendar">Все <i class="fas fa-chevron-right"></i></button>
+            </div>
+            <div id="eventsToday" class="events-today">
+                <div class="skeleton-line"></div>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- РЫНОК -->
+    <section class="page" id="page-market">
+        <div class="market-controls">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="marketSearch" placeholder="Поиск монеты..." />
+            </div>
+            <div class="market-filter" id="marketFilter">
+                <button class="filter-btn active" data-limit="100">Топ-100</button>
+                <button class="filter-btn" data-limit="500">Топ-500</button>
+                <button class="filter-btn" data-limit="all">Все</button>
+            </div>
+        </div>
+
+        <div class="market-table-wrap">
+            <table class="market-table">
+                <thead>
+                    <tr>
+                        <th data-sort="name">Монета</th>
+                        <th data-sort="price" class="num">Цена</th>
+                        <th data-sort="change24" class="num">24ч</th>
+                        <th data-sort="change7" class="num">7д</th>
+                        <th data-sort="cap" class="num">Кап.</th>
+                        <th data-sort="volume" class="num">Объём</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="marketBody">
+                    <tr><td colspan="7" class="loading-cell">Загрузка...</td></tr>
+                </tbody>
+            </table>
         </div>
     </section>
 
-    <!-- РЕКЛАМА -->
-    <section class="ad-section">
-        <div class="container">
-            <div id="adContainer" class="ad-container glass">
-                <!-- Реклама подгружается через JS -->
+    <!-- НОВОСТИ -->
+    <section class="page" id="page-news">
+        <div class="news-controls">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="newsSearch" placeholder="Поиск по заголовку..." />
             </div>
+            <div class="news-filters" id="newsFilters">
+                <button class="filter-btn active" data-filter="all">Все</button>
+                <button class="filter-btn" data-filter="important">🔥 Важное</button>
+                <button class="filter-btn" data-filter="saved">⭐ Сохранённые</button>
+            </div>
+        </div>
+
+        <div id="newsList" class="news-list"></div>
+
+        <div class="load-more-wrap">
+            <button id="loadMoreNews" class="load-more-btn">Показать ещё</button>
         </div>
     </section>
 
-    <!-- КОНТЕНТ -->
-    <section class="content-section" id="contentSection">
-        <div class="container">
-
-            <!-- ВКЛАДКА: ГЛАВНАЯ -->
-            <div id="tabMain" class="tab-content active">
-                <div class="section-header">
-                    <h2><i class="fas fa-rocket"></i> Топ криптовалют</h2>
-                    <span class="section-subtitle">Цены в реальном времени</span>
-                </div>
-                <div id="cryptoContainer" class="crypto-container">
-                    <!-- Данные подгружаются через JS -->
-                </div>
-
-                <div style="margin-top:32px;">
-                    <div class="section-header">
-                        <h2><i class="fas fa-pen-fancy"></i> Эксклюзивные материалы</h2>
-                        <span class="section-subtitle">Автоматический сбор</span>
-                    </div>
-                    <div id="postsContainer" class="posts-container">
-                        <!-- Посты из data/posts.json + автоматический сбор -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- ВКЛАДКА: СВЕЖИЕ НОВОСТИ -->
-            <div id="tabNews" class="tab-content">
-                <div class="section-header">
-                    <h2><i class="fas fa-newspaper"></i> Свежие новости</h2>
-                    <span class="section-subtitle">Из разных источников</span>
-                </div>
-                <div id="newsContainer" class="news-container">
-                    <!-- Новости подгружаются через JS -->
-                </div>
-            </div>
-
-            <!-- ВКЛАДКА: АЛЬТКОИНЫ -->
-            <div id="tabAltcoins" class="tab-content">
-                <div class="section-header">
-                    <h2><i class="fas fa-coins"></i> Новости альткоинов</h2>
-                    <span class="section-subtitle">XRP, DOGE, SOL, ADA, PEPE и другие</span>
-                </div>
-                <div id="altcoinContainer" class="news-container">
-                    <!-- Новости альткоинов подгружаются через JS -->
-                </div>
-            </div>
-
-            <!-- ВКЛАДКА: КРИПТО-КАЛЕНДАРЬ -->
-            <div id="tabCalendar" class="tab-content">
-                <div class="section-header">
-                    <h2><i class="fas fa-calendar-alt"></i> Крипто-календарь</h2>
-                    <span class="section-subtitle">Важные события рынка</span>
-                </div>
-                <div id="calendarContainer" class="calendar-container">
-                    <!-- Календарь подгружается через JS -->
-                </div>
-            </div>
-
+    <!-- ПОРТФЕЛЬ -->
+    <section class="page" id="page-portfolio">
+        <div class="empty-state">
+            <i class="fas fa-briefcase"></i>
+            <h3>Портфель</h3>
+            <p>Функция появится в Релизе 2</p>
         </div>
     </section>
 
-    <!-- ПОДВАЛ -->
-    <footer class="footer glass">
-        <div class="container">
-            <div class="footer-grid">
-                <div class="footer-brand">
-                    <div class="logo">
-                        <i class="fas fa-coins"></i>
-                        <span>CoinDigest</span>
-                    </div>
-                    <p>Ваш источник актуальной информации о криптовалютах</p>
-                </div>
-                <div class="footer-links">
-                    <h4>Разделы</h4>
-                    <a href="#" data-tab="main">Главная</a>
-                    <a href="#" data-tab="news">Новости</a>
-                    <a href="#" data-tab="altcoins">Альткоины</a>
-                    <a href="#" data-tab="calendar">Календарь</a>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; 2026 CoinDigest. Все права защищены.</p>
-                <p class="footer-update">Данные обновляются каждые 60 минут</p>
-            </div>
+    <!-- АЛЕРТЫ -->
+    <section class="page" id="page-alerts">
+        <div class="empty-state">
+            <i class="fas fa-bell"></i>
+            <h3>Алерты</h3>
+            <p>Функция появится в Релизе 2</p>
         </div>
-    </footer>
+    </section>
 
-    <!-- ============================================ -->
-    <!-- ===== ПЛАВАЮЩАЯ КНОПКА TELEGRAM ===== -->
-    <!-- ============================================ -->
-    
-    <a href="https://t.me/coindigestnews" target="_blank" rel="noopener" class="tg-float-btn" aria-label="Подписаться на Telegram канал CoinDigest">
-        <i class="fab fa-telegram-plane"></i>
-    </a>
+    <!-- КАЛЕНДАРЬ -->
+    <section class="page" id="page-calendar">
+        <div class="calendar-filters" id="calFilters">
+            <button class="filter-btn active" data-period="today">Сегодня</button>
+            <button class="filter-btn" data-period="week">Неделя</button>
+            <button class="filter-btn" data-period="month">Месяц</button>
+        </div>
+        <div id="calendarList" class="calendar-list">
+            <div class="skeleton-line"></div>
+            <div class="skeleton-line"></div>
+        </div>
+    </section>
 
-    <script src="assets/script.js"></script>
+</main>
+
+<!-- ===== НИЖНЯЯ НАВИГАЦИЯ ===== -->
+<nav class="bottom-nav">
+    <button class="nav-btn active" data-page="home">
+        <i class="fas fa-home"></i>
+        <span>Главная</span>
+    </button>
+    <button class="nav-btn" data-page="market">
+        <i class="fas fa-chart-line"></i>
+        <span>Рынок</span>
+    </button>
+    <button class="nav-btn" data-page="news">
+        <i class="fas fa-newspaper"></i>
+        <span>Новости</span>
+    </button>
+    <button class="nav-btn" data-page="portfolio">
+        <i class="fas fa-briefcase"></i>
+        <span>Портфель</span>
+    </button>
+    <button class="nav-btn" data-page="alerts">
+        <i class="fas fa-bell"></i>
+        <span>Алерты</span>
+    </button>
+    <button class="nav-btn" data-page="calendar">
+        <i class="fas fa-calendar-alt"></i>
+        <span>Календарь</span>
+    </button>
+</nav>
+
+<script src="script.js"></script>
 </body>
 </html>
