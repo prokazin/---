@@ -43,7 +43,7 @@ export default async function handler(req, res) {
 // ============================================
 
 const BOT_TOKEN = '8381752054:AAH6PbcijT-hDcgPn8iO_DPu1bwTO1Z5d08;
-const CHAT_ID = '1004427870334';
+const CHAT_ID = '-1004427870334';
 
 // ============================================
 // === ИСТОЧНИКИ НОВОСТЕЙ ===
