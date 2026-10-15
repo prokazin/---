@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "CoinDigest — крипто-дайджест для Telegram Mini App",
   "main": "api/news.js",
+  "type": "module",
   "engines": {
     "node": ">=18.0.0"
   },
