@@ -42,8 +42,8 @@ export default async function handler(req, res) {
 // === КОНФИГ ===
 // ============================================
 
-const BOT_TOKEN = '8422981212:AAFqUt5juqdC_l64q7FACOBw-mFL4f0hN8Y';
-const CHAT_ID = '-1004345602790';
+const BOT_TOKEN = '8381752054:AAH6PbcijT-hDcgPn8iO_DPu1bwTO1Z5d08;
+const CHAT_ID = '1004427870334';
 
 // ============================================
 // === ИСТОЧНИКИ НОВОСТЕЙ ===
