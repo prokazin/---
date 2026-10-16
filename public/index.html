@@ -33,12 +33,10 @@
     <!-- ГЛАВНАЯ -->
     <section class="page active" id="page-home">
 
-        <!-- Тренд рынка -->
         <div class="card trend-card" id="trendCard">
-            <div class="trend-loading skeleton-block"></div>
+            <div class="skeleton-line"></div>
         </div>
 
-        <!-- Почему это важно -->
         <div class="card" id="whyCard">
             <div class="card-title">
                 <i class="fas fa-fire"></i>
@@ -50,7 +48,6 @@
             </div>
         </div>
 
-        <!-- Быстрые действия -->
         <div class="quick-actions">
             <button class="quick-btn" data-goto="portfolio">
                 <i class="fas fa-briefcase"></i>
@@ -66,7 +63,6 @@
             </button>
         </div>
 
-        <!-- Топ-5 монет -->
         <div class="card">
             <div class="card-title">
                 <i class="fas fa-trophy"></i>
@@ -80,7 +76,6 @@
             </div>
         </div>
 
-        <!-- События дня -->
         <div class="card">
             <div class="card-title">
                 <i class="fas fa-calendar-alt"></i>
@@ -151,20 +146,53 @@
 
     <!-- ПОРТФЕЛЬ -->
     <section class="page" id="page-portfolio">
-        <div class="empty-state">
-            <i class="fas fa-briefcase"></i>
-            <h3>Портфель</h3>
-            <p>Функция появится в Релизе 2</p>
+
+        <div class="card pf-summary">
+            <div class="card-title">
+                <i class="fas fa-chart-pie"></i>
+                <span>Мой портфель</span>
+                <button class="link-btn" id="pfShareBtn" style="margin-left:auto;">
+                    <i class="fas fa-share-alt"></i> Поделиться
+                </button>
+            </div>
+
+            <div class="pf-total" id="portfolioTotal">$0.00</div>
+
+            <div class="pf-stats">
+                <div class="pf-stat">
+                    <div class="pf-label">PnL</div>
+                    <div class="pf-val" id="pfPnl">$0.00</div>
+                </div>
+                <div class="pf-stat">
+                    <div class="pf-label">24ч</div>
+                    <div class="pf-val" id="pfChange24">0.00%</div>
+                </div>
+                <div class="pf-stat">
+                    <div class="pf-label">7д</div>
+                    <div class="pf-val" id="pfChange7">0.00%</div>
+                </div>
+            </div>
+
+            <div id="portfolioPie" class="pf-pie"></div>
         </div>
+
+        <button class="primary-btn" id="pfAddBtn">
+            <i class="fas fa-plus"></i> Добавить монету
+        </button>
+
+        <div id="portfolioList" class="pf-list"></div>
+
     </section>
 
     <!-- АЛЕРТЫ -->
     <section class="page" id="page-alerts">
-        <div class="empty-state">
-            <i class="fas fa-bell"></i>
-            <h3>Алерты</h3>
-            <p>Функция появится в Релизе 2</p>
-        </div>
+
+        <button class="primary-btn" id="alertAddBtn">
+            <i class="fas fa-plus"></i> Создать алерт
+        </button>
+
+        <div id="alertsList" class="alerts-list"></div>
+
     </section>
 
     <!-- КАЛЕНДАРЬ -->
@@ -181,6 +209,11 @@
     </section>
 
 </main>
+
+<!-- ===== МОДАЛЬНОЕ ОКНО ===== -->
+<div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal" id="modalContent"></div>
+</div>
 
 <!-- ===== НИЖНЯЯ НАВИГАЦИЯ ===== -->
 <nav class="bottom-nav">
