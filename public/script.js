@@ -1,19 +1,20 @@
 // ============================================
-// CoinDigest — клиентская логика (Релиз 1)
+// CoinDigest — клиентская логика (Релизы 1+2)
 // ============================================
 
 const API = '/api/news?secret=coindigest_2026';
 const AI_API = '/api/ai?secret=coindigest_2026';
 const LS_PREFIX = 'coindigest_';
+
 const LS = {
     get: (k, fallback = null) => {
         try { return JSON.parse(localStorage.getItem(LS_PREFIX + k)) ?? fallback; }
         catch { return fallback; }
     },
     set: (k, v) => localStorage.setItem(LS_PREFIX + k, JSON.stringify(v)),
+    del: (k) => localStorage.removeItem(LS_PREFIX + k),
 };
 
-// Telegram WebApp
 const tg = window.Telegram?.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
 
@@ -23,9 +24,9 @@ if (tg) { tg.ready(); tg.expand(); }
 
 const state = {
     page: 'home',
-    news: [],          // все новости (дедуплицированные)
+    news: [],
     newsFiltered: [],
-    newsRendered: 0,   // сколько показано
+    newsRendered: 0,
     newsPageSize: 10,
     marketCoins: [],
     marketFilter: '100',
@@ -38,7 +39,18 @@ const state = {
     savedNews: LS.get('savedNews', []),
     readNews: LS.get('readNews', []),
     ads: LS.get('ads', []),
+
+    // Портфель
+    portfolio: LS.get('portfolio', []),
+    priceCache: {},
+
+    // Алерты
+    alerts: LS.get('alerts', []),
+    calendarReminders: LS.get('calendarReminders', []),
 };
+
+// Лимит алертов
+const ALERTS_LIMIT = 3;
 
 // ============================================
 // НАВИГАЦИЯ
@@ -47,7 +59,6 @@ const state = {
 document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => switchPage(btn.dataset.page));
 });
-
 document.querySelectorAll('[data-goto]').forEach(btn => {
     btn.addEventListener('click', () => switchPage(btn.dataset.goto));
 });
@@ -56,16 +67,17 @@ function switchPage(page) {
     state.page = page;
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.getElementById('page-' + page)?.classList.add('active');
-    document.querySelectorAll('.nav-btn').forEach(b => {
-        b.classList.toggle('active', b.dataset.page === page);
-    });
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.page === page));
+
     if (page === 'market' && state.marketCoins.length === 0) loadMarket();
     if (page === 'news' && state.news.length === 0) loadNews();
     if (page === 'calendar' && state.calendar.length === 0) loadCalendar();
+    if (page === 'portfolio') renderPortfolio();
+    if (page === 'alerts') renderAlerts();
 }
 
 // ============================================
-// ГЛАВНАЯ — ТРЕНД РЫНКА
+// ГЛАВНАЯ — ТРЕНД
 // ============================================
 
 async function loadTrend() {
@@ -73,21 +85,20 @@ async function loadTrend() {
     try {
         const r = await fetch('https://api.coingecko.com/api/v3/global');
         const d = await r.json();
-        const btcDominance = d.data?.market_cap_percentage?.btc || 0;
+        const btcDom = d.data?.market_cap_percentage?.btc || 0;
         const capChange = d.data?.market_cap_change_percentage_24h_usd || 0;
 
         let trend, emoji, desc;
         if (capChange > 2) {
             trend = 'bull'; emoji = '🐂';
-            desc = `Рынок растёт на ${capChange.toFixed(1)}% за сутки. BTC доминация: ${btcDominance.toFixed(1)}%.`;
+            desc = `Рынок растёт на ${capChange.toFixed(1)}% за сутки. BTC доминация: ${btcDom.toFixed(1)}%.`;
         } else if (capChange < -2) {
             trend = 'bear'; emoji = '🐻';
-            desc = `Рынок падает на ${Math.abs(capChange).toFixed(1)}% за сутки. BTC доминация: ${btcDominance.toFixed(1)}%.`;
+            desc = `Рынок падает на ${Math.abs(capChange).toFixed(1)}% за сутки. BTC доминация: ${btcDom.toFixed(1)}%.`;
         } else {
             trend = 'neutral'; emoji = '⚖️';
-            desc = `Боковое движение. Изменение за 24ч: ${capChange > 0 ? '+' : ''}${capChange.toFixed(1)}%. BTC доминация: ${btcDominance.toFixed(1)}%.`;
+            desc = `Боковое движение. Изменение за 24ч: ${capChange > 0 ? '+' : ''}${capChange.toFixed(1)}%. BTC доминация: ${btcDom.toFixed(1)}%.`;
         }
-
         const title = trend === 'bull' ? 'Бычий тренд' : trend === 'bear' ? 'Медвежий тренд' : 'Нейтральный тренд';
 
         card.className = 'card trend-card ' + trend;
@@ -96,15 +107,14 @@ async function loadTrend() {
             <div class="trend-info">
                 <div class="trend-title">${title}</div>
                 <div class="trend-desc">${desc}</div>
-            </div>
-        `;
+            </div>`;
     } catch (e) {
         card.innerHTML = `<div class="trend-info"><div class="trend-desc">Не удалось загрузить данные</div></div>`;
     }
 }
 
 // ============================================
-// ГЛАВНАЯ — ТОП-5 МОНЕТ С СПАРКЛАЙНАМИ
+// ГЛАВНАЯ — ТОП-5 С СПАРКЛАЙНАМИ
 // ============================================
 
 async function loadTopCoins() {
@@ -133,8 +143,7 @@ async function loadTopCoins() {
                 <div class="top-coin-price">
                     <div class="top-coin-price-val">$${formatPrice(coin.current_price)}</div>
                     <div class="top-coin-change ${changeClass}">${sign}${change.toFixed(2)}%</div>
-                </div>
-            `;
+                </div>`;
             wrap.appendChild(div);
         });
     } catch (e) {
@@ -181,8 +190,7 @@ async function loadEventsToday() {
                 <div class="event-body">
                     <div class="event-title">${ev.name || 'Событие'}</div>
                     <div class="event-meta">${ev.type || ''}</div>
-                </div>
-            `;
+                </div>`;
             wrap.appendChild(div);
         });
     } catch (e) {
@@ -208,11 +216,9 @@ async function loadWhyImportant() {
                 <div class="why-item">
                     <div class="why-item-title"><a href="${n.url}" target="_blank">${truncate(n.title, 90)}</a></div>
                     <div class="why-item-source">${n.source}</div>
-                </div>
-            `;
+                </div>`;
         });
 
-        // AI-вывод
         try {
             const aiText = await getAIComment(news.map(n => n.title));
             if (aiText) {
@@ -220,10 +226,9 @@ async function loadWhyImportant() {
                     <div class="why-ai">
                         <div class="why-ai-title"><i class="fas fa-robot"></i> AI-вывод</div>
                         <div>${aiText}</div>
-                    </div>
-                `;
+                    </div>`;
             }
-        } catch (e) { /* молча */ }
+        } catch (e) {}
 
         wrap.innerHTML = html;
     } catch (e) {
@@ -240,15 +245,13 @@ async function getAIComment(titles) {
 }
 
 // ============================================
-// РЫНОК — ТАБЛИЦА
+// РЫНОК
 // ============================================
 
 async function loadMarket() {
     const tbody = document.getElementById('marketBody');
     tbody.innerHTML = '<tr><td colspan="7" class="loading-cell">Загрузка...</td></tr>';
-
     try {
-        const perPage = state.marketFilter === '100' ? 100 : state.marketFilter === '500' ? 250 : 250;
         const pages = state.marketFilter === '100' ? 1 : state.marketFilter === '500' ? 2 : 10;
         let all = [];
         for (let i = 1; i <= pages; i++) {
@@ -258,6 +261,8 @@ async function loadMarket() {
             all = all.concat(d);
         }
         state.marketCoins = all;
+        // Кэшируем цены для портфеля и алертов
+        all.forEach(c => state.priceCache[c.id] = c.current_price);
         renderMarket();
     } catch (e) {
         tbody.innerHTML = '<tr><td colspan="7" class="loading-cell">Ошибка загрузки</td></tr>';
@@ -277,7 +282,7 @@ function renderMarket() {
     const dir = state.marketSort.dir === 'asc' ? 1 : -1;
     coins.sort((a, b) => {
         let av, bv;
-        if (sf === 'name') { av = a.name; bv = b.name; return av.localeCompare(bv) * dir; }
+        if (sf === 'name') return a.name.localeCompare(b.name) * dir;
         if (sf === 'price') { av = a.current_price || 0; bv = b.current_price || 0; }
         if (sf === 'change24') { av = a.price_change_percentage_24h || 0; bv = b.price_change_percentage_24h || 0; }
         if (sf === 'change7') { av = a.price_change_percentage_7d_in_currency || 0; bv = b.price_change_percentage_7d_in_currency || 0; }
@@ -311,19 +316,13 @@ function renderMarket() {
             <td class="num ${c7 >= 0 ? 'up' : 'down'}">${c7 >= 0 ? '+' : ''}${c7.toFixed(2)}%</td>
             <td class="num">${formatBigNum(c.market_cap)}</td>
             <td class="num">${formatBigNum(c.total_volume)}</td>
-            <td><button class="market-add" data-add="${c.id}" title="В портфель"><i class="fas fa-plus"></i></button></td>
-        `;
+            <td><button class="market-add" title="В портфель"><i class="fas fa-plus"></i></button></td>`;
+
+        tr.querySelector('.market-add').addEventListener('click', () => openPortfolioAddModal(c));
         frag.appendChild(tr);
     });
     tbody.innerHTML = '';
     tbody.appendChild(frag);
-
-    // Обработка кнопок "+ портфель" (заглушка для Релиза 2)
-    tbody.querySelectorAll('[data-add]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            toast('Портфель появится в следующем обновлении');
-        });
-    });
 }
 
 // Сортировка
@@ -342,7 +341,6 @@ document.querySelectorAll('.market-table th[data-sort]').forEach(th => {
     });
 });
 
-// Поиск и фильтр рынка
 document.getElementById('marketSearch')?.addEventListener('input', e => {
     state.marketSearch = e.target.value.trim();
     renderMarket();
@@ -358,7 +356,7 @@ document.querySelectorAll('#marketFilter .filter-btn').forEach(btn => {
 });
 
 // ============================================
-// НОВОСТИ — ЗАГРУЗКА + ДЕДУПЛИКАЦИЯ
+// НОВОСТИ
 // ============================================
 
 async function loadNews() {
@@ -374,7 +372,6 @@ async function loadNews() {
     }
 }
 
-// Дедупликация: похожие заголовки — одна карточка со списком источников
 function deduplicateNews(news) {
     const groups = [];
     news.forEach(item => {
@@ -382,14 +379,10 @@ function deduplicateNews(news) {
         const existing = groups.find(g => similarity(g.key, key) > 0.75);
         if (existing) {
             existing.sources.push(item.source);
-            if (!existing.url) existing.url = item.url;
         } else {
             groups.push({
-                key,
-                title: item.title,
-                url: item.url,
-                sources: [item.source],
-                published_at: item.published_at,
+                key, title: item.title, url: item.url,
+                sources: [item.source], published_at: item.published_at,
             });
         }
     });
@@ -415,13 +408,9 @@ function similarity(a, b) {
 function isImportantNews(title, sources) {
     if (sources.length >= 2) return true;
     const t = (title || '').toLowerCase();
-    const keywords = ['sec ', 'etf', 'hack', 'hacked', 'crash', 'regulation', 'fed ', 'rate cut', 'rate hike', 'ban', 'lawsuit', 'surge', 'plunge', 'whale', 'blackrock', 'binance'];
-    return keywords.some(k => t.includes(k));
+    const kws = ['sec ', 'etf', 'hack', 'hacked', 'crash', 'regulation', 'fed ', 'rate cut', 'rate hike', 'ban', 'lawsuit', 'surge', 'plunge', 'whale', 'blackrock', 'binance'];
+    return kws.some(k => t.includes(k));
 }
-
-// ============================================
-// НОВОСТИ — ФИЛЬТРЫ И РЕНДЕР
-// ============================================
 
 document.querySelectorAll('#newsFilters .filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -457,10 +446,7 @@ function renderNews(reset = false) {
 
     slice.forEach((n, i) => {
         const globalIndex = start + i;
-        // Реклама после 5-й карточки
-        if (globalIndex === 5 && state.ads.length > 0) {
-            wrap.appendChild(buildAd());
-        }
+        if (globalIndex === 5 && state.ads.length > 0) wrap.appendChild(buildAd());
         wrap.appendChild(buildNewsCard(n));
     });
 
@@ -475,9 +461,7 @@ function renderNews(reset = false) {
 function buildNewsCard(n) {
     const isRead = state.readNews.includes(n.title);
     const isSaved = state.savedNews.includes(n.title);
-    const sourcesText = n.sources.length > 1
-        ? `Источники: ${n.sources.join(', ')}`
-        : n.sources[0] || '';
+    const sourcesText = n.sources.length > 1 ? `Источники: ${n.sources.join(', ')}` : n.sources[0] || '';
 
     const card = document.createElement('div');
     card.className = 'news-card' + (n.isImportant ? ' important' : '') + (isRead ? ' read' : '');
@@ -490,11 +474,10 @@ function buildNewsCard(n) {
         <div class="news-meta">
             <span>${sourcesText}</span>
             <div class="news-actions">
-                <button class="news-action-btn ${isSaved ? 'active' : ''}" data-save title="Сохранить"><i class="fas fa-star"></i></button>
-                <button class="news-action-btn" data-share title="Поделиться"><i class="fas fa-share-alt"></i></button>
+                <button class="news-action-btn ${isSaved ? 'active' : ''}" data-save><i class="fas fa-star"></i></button>
+                <button class="news-action-btn" data-share><i class="fas fa-share-alt"></i></button>
             </div>
-        </div>
-    `;
+        </div>`;
 
     card.querySelector('[data-link]')?.addEventListener('click', () => {
         if (!state.readNews.includes(n.title)) {
@@ -520,11 +503,8 @@ function buildNewsCard(n) {
     card.querySelector('[data-share]')?.addEventListener('click', e => {
         e.stopPropagation();
         const text = `${n.title}\n${n.url}`;
-        if (navigator.share) {
-            navigator.share({ title: n.title, url: n.url }).catch(() => {});
-        } else {
-            navigator.clipboard.writeText(text).then(() => toast('Ссылка скопирована'));
-        }
+        if (navigator.share) navigator.share({ title: n.title, url: n.url }).catch(() => {});
+        else navigator.clipboard.writeText(text).then(() => toast('Ссылка скопирована'));
     });
 
     return card;
@@ -538,8 +518,7 @@ function buildAd() {
         wrap.innerHTML = `
             <img src="${ad.url}" alt="Реклама">
             ${ad.text ? `<div class="news-ad-text">${ad.text}</div>` : ''}
-            ${ad.link ? `<div style="margin-top:8px;"><a href="${ad.link}" target="_blank" style="color:var(--accent);font-weight:600;">Подробнее →</a></div>` : ''}
-        `;
+            ${ad.link ? `<div style="margin-top:8px;"><a href="${ad.link}" target="_blank" style="color:var(--accent);font-weight:600;">Подробнее →</a></div>` : ''}`;
     } else if (ad.type === 'link') {
         wrap.innerHTML = `<a href="${ad.link}" target="_blank" style="color:var(--accent);font-weight:600;">${ad.text || 'Перейти'}</a>`;
     } else if (ad.type === 'html') {
@@ -551,7 +530,344 @@ function buildAd() {
 document.getElementById('loadMoreNews')?.addEventListener('click', () => renderNews(false));
 
 // ============================================
-// КАЛЕНДАРЬ
+// ПОРТФЕЛЬ
+// ============================================
+
+document.getElementById('pfAddBtn')?.addEventListener('click', () => openPortfolioAddModal(null));
+document.getElementById('pfShareBtn')?.addEventListener('click', sharePortfolio);
+
+function openPortfolioAddModal(presetCoin) {
+    if (presetCoin) {
+        showModal(`
+            <h3><i class="fas fa-plus"></i> Добавить ${presetCoin.symbol.toUpperCase()}</h3>
+            <div class="modal-field">
+                <label class="modal-label">Количество</label>
+                <input class="modal-input" id="pfAmount" type="number" step="any" placeholder="0.5" />
+            </div>
+            <div class="modal-field">
+                <label class="modal-label">Цена покупки (USD)</label>
+                <input class="modal-input" id="pfPrice" type="number" step="any" placeholder="${presetCoin.current_price}" value="${presetCoin.current_price}" />
+                <div class="modal-hint">Текущая цена: $${formatPrice(presetCoin.current_price)}</div>
+            </div>
+            <div class="modal-actions">
+                <button class="modal-cancel" data-close>Отмена</button>
+                <button class="modal-ok" data-save>Добавить</button>
+            </div>`, (modal) => {
+            modal.querySelector('[data-save]').addEventListener('click', () => {
+                const amount = parseFloat(modal.querySelector('#pfAmount').value);
+                const price = parseFloat(modal.querySelector('#pfPrice').value);
+                if (!amount || amount <= 0 || !price || price <= 0) { toast('Заполните поля'); return; }
+                state.portfolio.push({
+                    id: presetCoin.id,
+                    symbol: presetCoin.symbol.toUpperCase(),
+                    name: presetCoin.name,
+                    image: presetCoin.image,
+                    amount, buyPrice: price,
+                });
+                LS.set('portfolio', state.portfolio);
+                closeModal();
+                renderPortfolio();
+                toast('Добавлено в портфель');
+            });
+        });
+    } else {
+        // Поиск монеты
+        showModal(`
+            <h3><i class="fas fa-search"></i> Добавить монету</h3>
+            <div class="modal-field">
+                <input class="modal-input" id="pfSearch" placeholder="BTC, Ethereum..." autofocus />
+            </div>
+            <div class="coin-search-results" id="pfResults"></div>
+            <div class="modal-actions">
+                <button class="modal-cancel" data-close>Закрыть</button>
+            </div>`, (modal) => {
+            const input = modal.querySelector('#pfSearch');
+            const results = modal.querySelector('#pfResults');
+            let timer;
+            input.addEventListener('input', () => {
+                clearTimeout(timer);
+                timer = setTimeout(async () => {
+                    const q = input.value.trim().toLowerCase();
+                    if (q.length < 1) { results.innerHTML = ''; return; }
+                    try {
+                        const r = await fetch(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(q)}`);
+                        const d = await r.json();
+                        const coins = (d.coins || []).slice(0, 8);
+                        results.innerHTML = '';
+                        coins.forEach(c => {
+                            const item = document.createElement('div');
+                            item.className = 'coin-search-item';
+                            item.innerHTML = `
+                                <img src="${c.thumb}" alt="${c.symbol}">
+                                <div>
+                                    <div class="name">${c.name}</div>
+                                    <div class="symbol">${c.symbol}</div>
+                                </div>`;
+                            item.addEventListener('click', async () => {
+                                closeModal();
+                                // Получаем полную инфу для модалки
+                                try {
+                                    const rr = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${c.id}`);
+                                    const dd = await rr.json();
+                                    if (dd[0]) openPortfolioAddModal(dd[0]);
+                                } catch { toast('Ошибка загрузки'); }
+                            });
+                            results.appendChild(item);
+                        });
+                    } catch { results.innerHTML = '<div style="padding:12px;color:var(--text2);font-size:12px;">Ошибка поиска</div>'; }
+                }, 300);
+            });
+        });
+    }
+}
+
+async function renderPortfolio() {
+    const list = document.getElementById('portfolioList');
+    const totalEl = document.getElementById('portfolioTotal');
+    const pnlEl = document.getElementById('pfPnl');
+    const c24El = document.getElementById('pfChange24');
+    const c7El = document.getElementById('pfChange7');
+
+    if (!state.portfolio.length) {
+        totalEl.textContent = '$0.00';
+        pnlEl.textContent = '$0.00';
+        c24El.textContent = '0.00%';
+        c7El.textContent = '0.00%';
+        c24El.className = 'pf-val'; c7El.className = 'pf-val';
+        document.getElementById('portfolioPie').innerHTML = '';
+        list.innerHTML = '<div class="empty-state"><i class="fas fa-briefcase"></i><h3>Портфель пуст</h3><p>Добавьте первую монету</p></div>';
+        return;
+    }
+
+    // Загружаем актуальные цены
+    const ids = state.portfolio.map(p => p.id).join(',');
+    try {
+        const r = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&sparkline=false&price_change_percentage=24h,7d`);
+        const data = await r.json();
+        const priceMap = {};
+        data.forEach(c => priceMap[c.id] = c);
+
+        let totalValue = 0, totalCost = 0, weighted24 = 0, weighted7 = 0;
+        list.innerHTML = '';
+
+        state.portfolio.forEach(p => {
+            const coin = priceMap[p.id];
+            if (!coin) return;
+            const value = coin.current_price * p.amount;
+            const cost = p.buyPrice * p.amount;
+            totalValue += value;
+            totalCost += cost;
+            const c24 = coin.price_change_percentage_24h || 0;
+            const c7 = coin.price_change_percentage_7d_in_currency || 0;
+            weighted24 += c24 * value;
+            weighted7 += c7 * value;
+
+            const item = document.createElement('div');
+            item.className = 'pf-item';
+            item.innerHTML = `
+                <img src="${coin.image}" alt="${coin.symbol}">
+                <div class="pf-item-info">
+                    <div class="pf-item-symbol">${coin.symbol.toUpperCase()}</div>
+                    <div class="pf-item-amount">${p.amount} × $${formatPrice(p.buyPrice)}</div>
+                </div>
+                <div>
+                    <div class="pf-item-value">$${value.toFixed(2)}</div>
+                    <div class="pf-item-pnl ${value >= cost ? 'up' : 'down'}">${value >= cost ? '+' : ''}$${(value - cost).toFixed(2)}</div>
+                </div>
+                <div class="pf-item-actions">
+                    <button class="pf-item-btn" data-del title="Удалить"><i class="fas fa-trash"></i></button>
+                </div>`;
+
+            item.querySelector('[data-del]').addEventListener('click', () => {
+                state.portfolio = state.portfolio.filter(x => x.id !== p.id);
+                LS.set('portfolio', state.portfolio);
+                renderPortfolio();
+                toast('Удалено');
+            });
+            list.appendChild(item);
+        });
+
+        totalEl.textContent = '$' + totalValue.toFixed(2);
+        const pnl = totalValue - totalCost;
+        pnlEl.textContent = (pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(2);
+        pnlEl.className = 'pf-val ' + (pnl >= 0 ? 'up' : 'down');
+
+        const pct24 = totalValue ? weighted24 / totalValue : 0;
+        const pct7 = totalValue ? weighted7 / totalValue : 0;
+        c24El.textContent = (pct24 >= 0 ? '+' : '') + pct24.toFixed(2) + '%';
+        c24El.className = 'pf-val ' + (pct24 >= 0 ? 'up' : 'down');
+        c7El.textContent = (pct7 >= 0 ? '+' : '') + pct7.toFixed(2) + '%';
+        c7El.className = 'pf-val ' + (pct7 >= 0 ? 'up' : 'down');
+
+        renderPie(state.portfolio, priceMap, totalValue);
+    } catch (e) {
+        list.innerHTML = '<div class="empty-state"><p>Ошибка загрузки цен</p></div>';
+    }
+}
+
+function renderPie(portfolio, priceMap, totalValue) {
+    const el = document.getElementById('portfolioPie');
+    if (!totalValue) { el.innerHTML = ''; return; }
+    const colors = ['#F0B90B', '#0ECB81', '#F6465D', '#4A90E2', '#9B59B6', '#E67E22', '#1ABC9C', '#E91E63', '#3498DB', '#F1C40F'];
+    let start = 0;
+    const radius = 60, cx = 80, cy = 80, stroke = 30;
+    let paths = '';
+
+    portfolio.forEach((p, i) => {
+        const coin = priceMap[p.id];
+        if (!coin) return;
+        const value = coin.current_price * p.amount;
+        const pct = value / totalValue;
+        const angle = pct * 360;
+        const end = start + angle;
+        const largeArc = angle > 180 ? 1 : 0;
+        const x1 = cx + radius * Math.cos((start - 90) * Math.PI / 180);
+        const y1 = cy + radius * Math.sin((start - 90) * Math.PI / 180);
+        const x2 = cx + radius * Math.cos((end - 90) * Math.PI / 180);
+        const y2 = cy + radius * Math.sin((end - 90) * Math.PI / 180);
+        const color = colors[i % colors.length];
+
+        paths += `<path d="M ${cx} ${cy} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z" fill="${color}" />`;
+        start = end;
+    });
+
+    // Внутренний круг — для "дырки"
+    paths += `<circle cx="${cx}" cy="${cy}" r="${radius - stroke / 2}" fill="var(--card)" />`;
+
+    el.innerHTML = `<svg width="160" height="160" viewBox="0 0 160 160">${paths}</svg>`;
+}
+
+function sharePortfolio() {
+    if (!state.portfolio.length) { toast('Портфель пуст'); return; }
+    const text = 'Мой портфель CoinDigest:\n' + state.portfolio.map(p => `• ${p.symbol}: ${p.amount}`).join('\n') + '\n\nОткрыть: https://crypto-nine-opal.vercel.app/';
+    if (navigator.share) navigator.share({ title: 'Мой портфель', text }).catch(() => {});
+    else navigator.clipboard.writeText(text).then(() => toast('Скопировано'));
+}
+
+// ============================================
+// АЛЕРТЫ
+// ============================================
+
+document.getElementById('alertAddBtn')?.addEventListener('click', openAlertModal);
+
+function openAlertModal() {
+    if (state.alerts.length >= ALERTS_LIMIT) {
+        toast(`Лимит: ${ALERTS_LIMIT} алерта`);
+        return;
+    }
+    showModal(`
+        <h3><i class="fas fa-bell"></i> Создать алерт</h3>
+        <div class="modal-field">
+            <label class="modal-label">Монета</label>
+            <input class="modal-input" id="alSearch" placeholder="BTC, Ethereum..." autofocus />
+            <div class="coin-search-results" id="alResults" style="display:none;"></div>
+            <div class="modal-hint" id="alSelected"></div>
+        </div>
+        <div class="modal-field">
+            <label class="modal-label">Условие</label>
+            <select class="modal-select" id="alCondition">
+                <option value="above">Цена выше</option>
+                <option value="below">Цена ниже</option>
+            </select>
+        </div>
+        <div class="modal-field">
+            <label class="modal-label">Цена (USD)</label>
+            <input class="modal-input" id="alPrice" type="number" step="any" placeholder="100000" />
+        </div>
+        <div class="modal-actions">
+            <button class="modal-cancel" data-close>Отмена</button>
+            <button class="modal-ok" data-save disabled>Создать</button>
+        </div>`, (modal) => {
+        let selectedCoin = null;
+        const input = modal.querySelector('#alSearch');
+        const results = modal.querySelector('#alResults');
+        const selected = modal.querySelector('#alSelected');
+        const saveBtn = modal.querySelector('[data-save]');
+        let timer;
+
+        input.addEventListener('input', () => {
+            clearTimeout(timer);
+            timer = setTimeout(async () => {
+                const q = input.value.trim().toLowerCase();
+                if (q.length < 1) { results.style.display = 'none'; return; }
+                try {
+                    const r = await fetch(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(q)}`);
+                    const d = await r.json();
+                    results.innerHTML = '';
+                    results.style.display = 'block';
+                    (d.coins || []).slice(0, 6).forEach(c => {
+                        const item = document.createElement('div');
+                        item.className = 'coin-search-item';
+                        item.innerHTML = `
+                            <img src="${c.thumb}" alt="${c.symbol}">
+                            <div>
+                                <div class="name">${c.name}</div>
+                                <div class="symbol">${c.symbol}</div>
+                            </div>`;
+                        item.addEventListener('click', () => {
+                            selectedCoin = { id: c.id, symbol: c.symbol.toUpperCase(), name: c.name };
+                            selected.textContent = `Выбрано: ${c.name} (${c.symbol.toUpperCase()})`;
+                            input.value = c.name;
+                            results.style.display = 'none';
+                            saveBtn.disabled = false;
+                        });
+                        results.appendChild(item);
+                    });
+                } catch {}
+            }, 300);
+        });
+
+        saveBtn.addEventListener('click', () => {
+            if (!selectedCoin) { toast('Выберите монету'); return; }
+            const price = parseFloat(modal.querySelector('#alPrice').value);
+            const condition = modal.querySelector('#alCondition').value;
+            if (!price || price <= 0) { toast('Укажите цену'); return; }
+            state.alerts.push({
+                id: Date.now().toString(36),
+                coinId: selectedCoin.id,
+                symbol: selectedCoin.symbol,
+                name: selectedCoin.name,
+                condition, price,
+                createdAt: new Date().toISOString(),
+            });
+            LS.set('alerts', state.alerts);
+            closeModal();
+            renderAlerts();
+            toast('Алерт создан');
+        });
+    });
+}
+
+function renderAlerts() {
+    const list = document.getElementById('alertsList');
+    if (!state.alerts.length) {
+        list.innerHTML = '<div class="empty-state"><i class="fas fa-bell"></i><h3>Алертов нет</h3><p>Создайте первый алерт на цену</p></div>';
+        return;
+    }
+    list.innerHTML = '';
+    state.alerts.forEach(a => {
+        const item = document.createElement('div');
+        item.className = 'alert-item';
+        const conditionText = a.condition === 'above' ? 'выше' : 'ниже';
+        item.innerHTML = `
+            <div class="alert-icon"><i class="fas fa-bell"></i></div>
+            <div class="alert-info">
+                <div class="alert-title">${a.symbol} — цена ${conditionText} $${formatPrice(a.price)}</div>
+                <div class="alert-meta">${a.name}</div>
+            </div>
+            <button class="alert-del" title="Удалить"><i class="fas fa-trash"></i></button>`;
+        item.querySelector('.alert-del').addEventListener('click', () => {
+            state.alerts = state.alerts.filter(x => x.id !== a.id);
+            LS.set('alerts', state.alerts);
+            renderAlerts();
+            toast('Алерт удалён');
+        });
+        list.appendChild(item);
+    });
+}
+
+// ============================================
+// КАЛЕНДАРЬ + НАПОМИНАНИЯ
 // ============================================
 
 async function loadCalendar() {
@@ -586,13 +902,9 @@ function renderCalendar() {
 
     let events = state.calendar.map(e => ({ ...e, _date: new Date(e.event_date) }));
 
-    if (state.calendarPeriod === 'today') {
-        events = events.filter(e => e._date >= today && e._date < tomorrow);
-    } else if (state.calendarPeriod === 'week') {
-        events = events.filter(e => e._date >= today && e._date < weekEnd);
-    } else {
-        events = events.filter(e => e._date >= today && e._date < monthEnd);
-    }
+    if (state.calendarPeriod === 'today') events = events.filter(e => e._date >= today && e._date < tomorrow);
+    else if (state.calendarPeriod === 'week') events = events.filter(e => e._date >= today && e._date < weekEnd);
+    else events = events.filter(e => e._date >= today && e._date < monthEnd);
 
     if (!events.length) {
         list.innerHTML = '<div class="empty-state" style="padding:40px 20px;"><i class="fas fa-calendar-times"></i><p>Событий нет</p></div>';
@@ -604,6 +916,8 @@ function renderCalendar() {
         const dt = e._date;
         const day = String(dt.getDate()).padStart(2, '0');
         const month = dt.toLocaleString('ru', { month: 'short' });
+        const reminded = state.calendarReminders.includes(e.name);
+
         const item = document.createElement('div');
         item.className = 'calendar-item';
         item.innerHTML = `
@@ -611,13 +925,48 @@ function renderCalendar() {
                 <div class="event-day">${day}</div>
                 <div class="event-month">${month}</div>
             </div>
-            <div class="event-body">
+            <div class="event-body" style="padding-right:40px;">
                 <div class="event-title">${e.name || 'Событие'}</div>
                 <div class="event-meta">${e.type || ''} ${e.description ? '• ' + truncate(e.description, 80) : ''}</div>
             </div>
-        `;
+            <button class="calendar-remind-btn ${reminded ? 'active' : ''}" title="Напомнить">
+                <i class="fas fa-bell"></i>
+            </button>`;
+
+        item.querySelector('.calendar-remind-btn').addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            if (state.calendarReminders.includes(e.name)) {
+                state.calendarReminders = state.calendarReminders.filter(x => x !== e.name);
+                ev.currentTarget.classList.remove('active');
+                toast('Напоминание снято');
+            } else {
+                state.calendarReminders.push(e.name);
+                ev.currentTarget.classList.add('active');
+                toast('Напомним за день');
+            }
+            LS.set('calendarReminders', state.calendarReminders);
+        });
+
         list.appendChild(item);
     });
+}
+
+// ============================================
+// МОДАЛЬНОЕ ОКНО
+// ============================================
+
+function showModal(html, onMount) {
+    const back = document.getElementById('modalBackdrop');
+    const content = document.getElementById('modalContent');
+    content.innerHTML = html;
+    back.classList.add('show');
+    content.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeModal));
+    back.addEventListener('click', e => { if (e.target === back) closeModal(); }, { once: true });
+    if (onMount) onMount(content);
+}
+
+function closeModal() {
+    document.getElementById('modalBackdrop').classList.remove('show');
 }
 
 // ============================================
@@ -655,7 +1004,6 @@ function toast(msg) {
     el._t = setTimeout(() => el.classList.remove('show'), 2500);
 }
 
-// Стиль тоста добавляем динамически
 const toastStyle = document.createElement('style');
 toastStyle.textContent = `
 .toast {
@@ -684,21 +1032,19 @@ document.head.appendChild(toastStyle);
 // АВТООБНОВЛЕНИЕ
 // ============================================
 
-// Цены — каждые 60 секунд
 setInterval(() => {
     const now = new Date();
     document.getElementById('updateTime').textContent = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     if (state.page === 'home') { loadTopCoins(); loadTrend(); }
     if (state.page === 'market') renderMarket();
+    if (state.page === 'portfolio') renderPortfolio();
 }, 60000);
 
-// Новости — каждые 5 минут
 setInterval(() => {
     if (state.page === 'news') loadNews();
     if (state.page === 'home') loadWhyImportant();
 }, 5 * 60 * 1000);
 
-// Календарь — каждые 30 минут
 setInterval(() => {
     if (state.page === 'calendar') loadCalendar();
 }, 30 * 60 * 1000);
