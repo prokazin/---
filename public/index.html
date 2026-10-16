@@ -15,7 +15,6 @@
 </head>
 <body>
 
-<!-- ===== ШАПКА ===== -->
 <header class="header">
     <div class="logo">
         <i class="fas fa-coins"></i>
@@ -27,21 +26,14 @@
     </div>
 </header>
 
-<!-- ===== ОСНОВНОЙ КОНТЕНТ ===== -->
 <main class="main">
 
     <!-- ГЛАВНАЯ -->
     <section class="page active" id="page-home">
-
-        <div class="card trend-card" id="trendCard">
-            <div class="skeleton-line"></div>
-        </div>
+        <div class="card trend-card" id="trendCard"><div class="skeleton-line"></div></div>
 
         <div class="card" id="whyCard">
-            <div class="card-title">
-                <i class="fas fa-fire"></i>
-                <span>Почему это важно</span>
-            </div>
+            <div class="card-title"><i class="fas fa-fire"></i><span>Почему это важно</span></div>
             <div id="whyContent" class="why-content">
                 <div class="skeleton-line"></div>
                 <div class="skeleton-line short"></div>
@@ -49,44 +41,28 @@
         </div>
 
         <div class="quick-actions">
-            <button class="quick-btn" data-goto="portfolio">
-                <i class="fas fa-briefcase"></i>
-                <span>Портфель</span>
-            </button>
-            <button class="quick-btn" data-goto="alerts">
-                <i class="fas fa-bell"></i>
-                <span>Алерты</span>
-            </button>
-            <button class="quick-btn" data-goto="news">
-                <i class="fas fa-newspaper"></i>
-                <span>Все новости</span>
-            </button>
+            <button class="quick-btn" data-goto="portfolio"><i class="fas fa-briefcase"></i><span>Портфель</span></button>
+            <button class="quick-btn" data-goto="alerts"><i class="fas fa-bell"></i><span>Алерты</span></button>
+            <button class="quick-btn" data-goto="news"><i class="fas fa-newspaper"></i><span>Все новости</span></button>
         </div>
 
         <div class="card">
             <div class="card-title">
-                <i class="fas fa-trophy"></i>
-                <span>Топ-5 монет</span>
+                <i class="fas fa-trophy"></i><span>Топ-5 монет</span>
                 <button class="link-btn" data-goto="market">Все <i class="fas fa-chevron-right"></i></button>
             </div>
             <div id="topCoins" class="top-coins">
-                <div class="skeleton-line"></div>
-                <div class="skeleton-line"></div>
-                <div class="skeleton-line"></div>
+                <div class="skeleton-line"></div><div class="skeleton-line"></div>
             </div>
         </div>
 
         <div class="card">
             <div class="card-title">
-                <i class="fas fa-calendar-alt"></i>
-                <span>События дня</span>
+                <i class="fas fa-calendar-alt"></i><span>События дня</span>
                 <button class="link-btn" data-goto="calendar">Все <i class="fas fa-chevron-right"></i></button>
             </div>
-            <div id="eventsToday" class="events-today">
-                <div class="skeleton-line"></div>
-            </div>
+            <div id="eventsToday" class="events-today"><div class="skeleton-line"></div></div>
         </div>
-
     </section>
 
     <!-- РЫНОК -->
@@ -130,11 +106,39 @@
                 <i class="fas fa-search"></i>
                 <input type="text" id="newsSearch" placeholder="Поиск по заголовку..." />
             </div>
+
             <div class="news-filters" id="newsFilters">
                 <button class="filter-btn active" data-filter="all">Все</button>
                 <button class="filter-btn" data-filter="important">🔥 Важное</button>
                 <button class="filter-btn" data-filter="saved">⭐ Сохранённые</button>
             </div>
+
+            <div class="news-advanced-filters">
+                <select class="filter-select" id="newsSourceFilter">
+                    <option value="all">Все источники</option>
+                </select>
+                <select class="filter-select" id="newsCoinFilter">
+                    <option value="all">Все монеты</option>
+                </select>
+                <select class="filter-select" id="newsCategoryFilter">
+                    <option value="all">Все категории</option>
+                    <option value="regulation">⚖️ Регуляция</option>
+                    <option value="etf">📈 ETF</option>
+                    <option value="hack">🔓 Взломы</option>
+                    <option value="listing">📋 Листинги</option>
+                    <option value="tech">🔬 Технологии</option>
+                </select>
+                <select class="filter-select" id="newsTimeFilter">
+                    <option value="all">За всё время</option>
+                    <option value="1h">За час</option>
+                    <option value="24h">За 24 часа</option>
+                    <option value="7d">За неделю</option>
+                </select>
+            </div>
+
+            <button class="reset-filters-btn" id="newsResetFilters">
+                <i class="fas fa-times"></i> Сбросить фильтры
+            </button>
         </div>
 
         <div id="newsList" class="news-list"></div>
@@ -146,7 +150,6 @@
 
     <!-- ПОРТФЕЛЬ -->
     <section class="page" id="page-portfolio">
-
         <div class="card pf-summary">
             <div class="card-title">
                 <i class="fas fa-chart-pie"></i>
@@ -155,9 +158,7 @@
                     <i class="fas fa-share-alt"></i> Поделиться
                 </button>
             </div>
-
             <div class="pf-total" id="portfolioTotal">$0.00</div>
-
             <div class="pf-stats">
                 <div class="pf-stat">
                     <div class="pf-label">PnL</div>
@@ -172,7 +173,6 @@
                     <div class="pf-val" id="pfChange7">0.00%</div>
                 </div>
             </div>
-
             <div id="portfolioPie" class="pf-pie"></div>
         </div>
 
@@ -181,18 +181,14 @@
         </button>
 
         <div id="portfolioList" class="pf-list"></div>
-
     </section>
 
     <!-- АЛЕРТЫ -->
     <section class="page" id="page-alerts">
-
         <button class="primary-btn" id="alertAddBtn">
             <i class="fas fa-plus"></i> Создать алерт
         </button>
-
         <div id="alertsList" class="alerts-list"></div>
-
     </section>
 
     <!-- КАЛЕНДАРЬ -->
@@ -202,45 +198,36 @@
             <button class="filter-btn" data-period="week">Неделя</button>
             <button class="filter-btn" data-period="month">Месяц</button>
         </div>
+
+        <select class="filter-select" id="calTypeFilter" style="margin-bottom:12px;">
+            <option value="all">Все типы</option>
+            <option value="halving">🔻 Халвинги</option>
+            <option value="fork">🔧 Форки</option>
+            <option value="conference">🎤 Конференции</option>
+            <option value="listing">📋 Листинги</option>
+            <option value="regulation">⚖️ Регуляция</option>
+            <option value="update">⚙️ Обновления</option>
+            <option value="other">📅 Другое</option>
+        </select>
+
         <div id="calendarList" class="calendar-list">
-            <div class="skeleton-line"></div>
-            <div class="skeleton-line"></div>
+            <div class="skeleton-line"></div><div class="skeleton-line"></div>
         </div>
     </section>
 
 </main>
 
-<!-- ===== МОДАЛЬНОЕ ОКНО ===== -->
 <div class="modal-backdrop" id="modalBackdrop">
     <div class="modal" id="modalContent"></div>
 </div>
 
-<!-- ===== НИЖНЯЯ НАВИГАЦИЯ ===== -->
 <nav class="bottom-nav">
-    <button class="nav-btn active" data-page="home">
-        <i class="fas fa-home"></i>
-        <span>Главная</span>
-    </button>
-    <button class="nav-btn" data-page="market">
-        <i class="fas fa-chart-line"></i>
-        <span>Рынок</span>
-    </button>
-    <button class="nav-btn" data-page="news">
-        <i class="fas fa-newspaper"></i>
-        <span>Новости</span>
-    </button>
-    <button class="nav-btn" data-page="portfolio">
-        <i class="fas fa-briefcase"></i>
-        <span>Портфель</span>
-    </button>
-    <button class="nav-btn" data-page="alerts">
-        <i class="fas fa-bell"></i>
-        <span>Алерты</span>
-    </button>
-    <button class="nav-btn" data-page="calendar">
-        <i class="fas fa-calendar-alt"></i>
-        <span>Календарь</span>
-    </button>
+    <button class="nav-btn active" data-page="home"><i class="fas fa-home"></i><span>Главная</span></button>
+    <button class="nav-btn" data-page="market"><i class="fas fa-chart-line"></i><span>Рынок</span></button>
+    <button class="nav-btn" data-page="news"><i class="fas fa-newspaper"></i><span>Новости</span></button>
+    <button class="nav-btn" data-page="portfolio"><i class="fas fa-briefcase"></i><span>Портфель</span></button>
+    <button class="nav-btn" data-page="alerts"><i class="fas fa-bell"></i><span>Алерты</span></button>
+    <button class="nav-btn" data-page="calendar"><i class="fas fa-calendar-alt"></i><span>Календарь</span></button>
 </nav>
 
 <script src="script.js"></script>
