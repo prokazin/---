@@ -44,10 +44,14 @@ module.exports = async function handler(req, res) {
 // === КОНФИГ — ЗАМЕНИТЕ ТОКЕН ===
 // ============================================
 
-// ⚠️ ЗАМЕНИТЕ НА ВАШ ТОКЕН
-const BOT_TOKEN = '8381752054:AAH6PbcijT-hDcgPn8iO_DPu1bwTO1Z5d08';
+const BOT_TOKEN = '8381752054:ВАШ_ПОЛНЫЙ_ТОКЕН';
 const CHAT_ID = '-1004427870334';
 const MINI_APP_URL = 'https://crypto-nine-opal.vercel.app/';
+
+// Ссылка для запуска Mini App из канала (через бота)
+const BOT_USERNAME = 'Coindigest22bot'; // ← ЗАМЕНИТЕ, если другой
+const MINI_APP_SHORT_NAME = 'app';       // ← короткое имя из @BotFather
+const MINI_APP_LAUNCH_URL = `https://t.me/${BOT_USERNAME}/${MINI_APP_SHORT_NAME}`;
 
 // ============================================
 // === ИСТОЧНИКИ ===
@@ -117,7 +121,7 @@ async function sendMorning() {
     message += `👇 *Полный анализ и графики — в Mini App*`;
 
     return await sendMessageWithButtons(message, [
-        [{ text: '📱 Открыть Mini App', url: MINI_APP_URL }]
+        [{ text: '📱 Открыть Mini App', url: MINI_APP_LAUNCH_URL }]
     ]);
 }
 
@@ -152,7 +156,7 @@ async function sendAnalytics() {
     message += `\n👇 *Графики и калькулятор прибыли — в Mini App*`;
 
     return await sendMessageWithButtons(message, [
-        [{ text: '📱 Открыть Mini App', url: MINI_APP_URL }]
+        [{ text: '📱 Открыть Mini App', url: MINI_APP_LAUNCH_URL }]
     ]);
 }
 
@@ -182,7 +186,7 @@ async function sendEvening() {
     message += `👇 *Больше обучающих материалов — в Mini App*`;
 
     const result = await sendMessageWithButtons(message, [
-        [{ text: '📱 Открыть Mini App', url: MINI_APP_URL }]
+        [{ text: '📱 Открыть Mini App', url: MINI_APP_LAUNCH_URL }]
     ]);
 
     await sendPoll();
