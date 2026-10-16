@@ -1,5 +1,5 @@
 // ===== api/news.js — Vercel Serverless Function (CommonJS) =====
-// Режимы: morning | analytics | evening
+// Режимы: morning | analytics | evening | list
 // Вызов: /api/news?secret=coindigest_2026&mode=morning
 
 module.exports = async function handler(req, res) {
@@ -17,14 +17,15 @@ module.exports = async function handler(req, res) {
     try {
         console.log(`Режим: ${mode}`);
 
-        let result;
-        if (mode === 'analytics') {
-            result = await sendAnalytics();
-        } else if (mode === 'evening') {
-            result = await sendEvening();
-        } else {
-            result = await sendMorning();
+        if (mode === 'list') {
+            const news = await fetchNews(20);
+            return res.status(200).json({ success: true, news });
         }
+
+        let result;
+        if (mode === 'analytics') result = await sendAnalytics();
+        else if (mode === 'evening') result = await sendEvening();
+        else result = await sendMorning();
 
         return res.status(200).json({
             success: true,
@@ -40,10 +41,10 @@ module.exports = async function handler(req, res) {
 };
 
 // ============================================
-// === КОНФИГ ===
+// === КОНФИГ — ЗАМЕНИТЕ ТОКЕН ===
 // ============================================
 
-const BOT_TOKEN = '8381752054:AAH6PbcijT-hDcgPn8iO_DPu1bwTO1Z5d08';  // ← ЗАМЕНИТЕ
+const BOT_TOKEN = '8381752054:ВАШ_ПОЛНЫЙ_ТОКЕН';  // ← ЗАМЕНИТЕ
 const CHAT_ID = '-1004427870334';
 const MINI_APP_URL = 'https://crypto-nine-opal.vercel.app/';
 
@@ -59,26 +60,24 @@ const NEWS_SOURCES = [
 ];
 
 // ============================================
-// === РЕЖИМ: УТРЕННИЙ ДАЙДЖЕСТ (09:00 МСК) ===
+// === УТРЕННИЙ ДАЙДЖЕСТ ===
 // ============================================
 
 async function sendMorning() {
     const news = await fetchNews(5);
     if (news.length === 0) return { sent: false, message: 'Нет новостей' };
-
     const market = await fetchMarketSummary();
 
     let message = '🌅 *CoinDigest — Утренний дайджест*\n';
     message += `🕐 ${formatMoscowTime()}\n\n`;
-
     message += `📰 *Главное за ночь:*\n\n`;
+
     for (let i = 0; i < news.length; i++) {
         const title = await translateToRussian(news[i].title);
         message += `${i + 1}. [${title}](${news[i].url})\n`;
         message += `   📌 _${news[i].source}_\n\n`;
     }
 
-    // Слой пользы
     if (market) {
         message += `💡 *Что это значит для рынка:*\n`;
         const trend = market.avgChange > 2 ? '📈 рынок растёт' :
@@ -86,36 +85,34 @@ async function sendMorning() {
                       '⚖️ рынок в боковике';
         message += `BTC сейчас *$${market.btcPrice}* (${market.btcChange > 0 ? '+' : ''}${market.btcChange}%).\n`;
         message += `Общий тренд: ${trend}.\n`;
-        message += `Доминация BTC: ${market.btcDominance} — ${
-            parseFloat(market.btcDominance) > 55 ? 'капитал идёт в биткоин' :
-            'интерес к альткоинам растёт'
-        }.\n\n`;
+        message += `Доминация BTC: ${market.btcDominance}.\n\n`;
     }
 
-    message += `📱 *Полный анализ и графики — в Mini App*`;
-    message += `\n\n#дайджест #криптоновости 🌅`;
+    message += `👇 *Полный анализ и графики — в Mini App*`;
 
-    return await sendMessage(message, true);
+    return await sendMessageWithButtons(message, [
+        [
+            { text: '📱 Открыть Mini App', url: MINI_APP_URL },
+            { text: '📰 Все новости', url: MINI_APP_URL }
+        ]
+    ]);
 }
 
 // ============================================
-// === РЕЖИМ: АНАЛИТИКА (13:00 МСК) ===
+// === АНАЛИТИКА ===
 // ============================================
 
 async function sendAnalytics() {
     const market = await fetchMarketSummary();
     if (!market) return { sent: false, message: 'Нет данных' };
-
     const topCoins = await fetchTopCoins();
 
     let message = '📊 *CoinDigest — Аналитика рынка*\n';
     message += `🕐 ${formatMoscowTime()}\n\n`;
-
     message += `💰 *Общий рынок:*\n`;
     message += `• Капитализация: ${market.totalMarketCap}\n`;
     message += `• Доминация BTC: ${market.btcDominance}\n`;
     message += `• Доминация ETH: ${market.ethDominance}\n\n`;
-
     message += `🏆 *Топ-5 монет:*\n`;
     for (const coin of topCoins) {
         const sign = coin.change >= 0 ? '+' : '';
@@ -123,25 +120,24 @@ async function sendAnalytics() {
         message += `• ${emoji} *${coin.symbol}*: $${coin.price} (${sign}${coin.change}%)\n`;
     }
 
-    // Вывод
-    const avg = topCoins.reduce((s, c) => s + parseFloat(c.change), 0) / topCoins.length;
+    const avg = topCoins.reduce((s, c) => s + parseFloat(c.change), 0) / (topCoins.length || 1);
     message += `\n💡 *Вывод:*\n`;
-    if (avg > 3) {
-        message += `Рынок в фазе роста. Основной драйвер — спрос на топ-монеты. Осторожно с новыми покупками на пике.\n`;
-    } else if (avg < -3) {
-        message += `Рынок под давлением. Возможны локальные отскоки. Уровни поддержки BTC: $${(market.btcPrice * 0.95).toFixed(0)} и $${(market.btcPrice * 0.9).toFixed(0)}.\n`;
-    } else {
-        message += `Смешанная динамика. Рынок ждёт триггера — макро-данных или новостей от регуляторов.\n`;
-    }
+    if (avg > 3) message += `Рынок в фазе роста. Основной драйвер — спрос на топ-монеты.\n`;
+    else if (avg < -3) message += `Рынок под давлением. Уровни поддержки BTC: $${(market.btcPrice * 0.95).toFixed(0)}.\n`;
+    else message += `Смешанная динамика. Рынок ждёт триггера — макро-данных или новостей от регуляторов.\n`;
 
-    message += `\n📱 *Графики и калькулятор прибыли — в Mini App*`;
-    message += `\n\n#аналитика #крипторынок 📊`;
+    message += `\n👇 *Графики и калькулятор прибыли — в Mini App*`;
 
-    return await sendMessage(message, true);
+    return await sendMessageWithButtons(message, [
+        [
+            { text: '📱 Открыть Mini App', url: MINI_APP_URL },
+            { text: '📊 Аналитика', url: MINI_APP_URL }
+        ]
+    ]);
 }
 
 // ============================================
-// === РЕЖИМ: ВЕЧЕРНИЙ ДАЙДЖЕСТ (19:00 МСК) ===
+// === ВЕЧЕРНИЙ ДАЙДЖЕСТ ===
 // ============================================
 
 async function sendEvening() {
@@ -160,19 +156,18 @@ async function sendEvening() {
         }
     }
 
-    // Обучающий блок
     message += `🎓 *Ликбез на вечер:*\n`;
     message += `${education.title}\n\n`;
     message += `${education.text}\n\n`;
+    message += `👇 *Больше обучающих материалов — в Mini App*`;
 
-    message += `📱 *Больше обучающих материалов — в Mini App*`;
-    message += `\n\n#обучение #итогидня 🌙`;
+    const result = await sendMessageWithButtons(message, [
+        [
+            { text: '📱 Открыть Mini App', url: MINI_APP_URL }
+        ]
+    ]);
 
-    const result = await sendMessage(message, true);
-
-    // Опрос для вовлечённости
     await sendPoll();
-
     return result;
 }
 
@@ -209,35 +204,20 @@ async function sendPoll() {
 
 function getEducationalTip() {
     const tips = [
-        {
-            title: '❓ Что такое ликвидность простыми словами',
-            text: 'Ликвидность — это насколько легко купить или продать монету без резкого изменения цены.\n\n• **Высокая ликвидность** (BTC, ETH) — можно купить на $100k и цена почти не сдвинется.\n• **Низкая ликвидность** (мелкие альты) — одна крупная покупка может сдвинуть цену на 10-20%.\n\n💡 *Совет:* не покупайте мелкие монеты на всю котлету — на выходе можете не найти покупателя.'
-        },
-        {
-            title: '❓ Что такое проскальзывание (slippage)',
-            text: 'Slippage — разница между ожидаемой ценой сделки и фактической.\n\nПример: вы хотите купить монету за $1.00, но из-за низкой ликвидности сделка проходит по $1.03. Slippage = 3%.\n\n💡 *Совет:* на биржах используйте лимитные ордера — они не дают slippage.'
-        },
-        {
-            title: '❓ Что такое доминация BTC',
-            text: 'Доминация — доля биткоина в общей капитализации рынка.\n\n• **Растёт** → деньги уходят из альтов в BTC (страх).\n• **Падает** → начинается альтсезон, капитал идёт в альткоины.\n\n💡 *Совет:* следите за доминацией BTC — это лучший индикатор ротации капитала.'
-        },
-        {
-            title: '❓ Что такое DCA (усреднение)',
-            text: 'DCA (Dollar-Cost Averaging) — стратегия покупки на фиксированную сумму через равные интервалы.\n\nПример: покупаете BTC на $100 каждую неделю — неважно, растёт цена или падает. Это снижает риск входа на пике.\n\n💡 *Совет:* DCA — лучшая стратегия для новичков, потому что не требует угадывать момент.'
-        },
-        {
-            title: '❓ Что такое Fear & Greed Index',
-            text: 'Индекс страха и жадности — от 0 (крайний страх) до 100 (крайняя жадность).\n\n• **0-25** → время покупать (все боятся).\n• **75-100** → время фиксировать прибыль (все жадные).\n\n💡 *Совет:* когда все вокруг кричат «покупай», скорее всего уже поздно.'
-        }
+        { title: '❓ Что такое ликвидность', text: 'Ликвидность — насколько легко купить или продать монету без резкого изменения цены.\n\n• **Высокая** (BTC, ETH) — крупная покупка не сдвинет цену.\n• **Низкая** (мелкие альты) — крупная сделка сдвинет цену на 10-20%.\n\n💡 *Совет:* не покупайте мелкие монеты на всю котлету.' },
+        { title: '❓ Что такое проскальзывание (slippage)', text: 'Slippage — разница между ожидаемой ценой сделки и фактической.\n\nПример: хотите купить за $1.00, сделка проходит по $1.03. Slippage = 3%.\n\n💡 *Совет:* используйте лимитные ордера — они не дают slippage.' },
+        { title: '❓ Что такое доминация BTC', text: 'Доминация — доля биткоина в общей капитализации рынка.\n\n• **Растёт** → деньги уходят из альтов в BTC.\n• **Падает** → начинается альтсезон.\n\n💡 *Совет:* следите за доминацией — это индикатор ротации капитала.' },
+        { title: '❓ Что такое DCA (усреднение)', text: 'DCA — покупка на фиксированную сумму через равные интервалы.\n\nПример: покупаете BTC на $100 каждую неделю, не глядя на цену. Это снижает риск входа на пике.\n\n💡 *Совет:* DCA — лучшая стратегия для новичков.' },
+        { title: '❓ Что такое Fear & Greed Index', text: 'Индекс страха и жадности — от 0 до 100.\n\n• **0-25** → время покупать.\n• **75-100** → время фиксировать прибыль.\n\n💡 *Совет:* когда все кричат «покупай», скорее всего поздно.' }
     ];
     return tips[Math.floor(Math.random() * tips.length)];
 }
 
 // ============================================
-// === ОТПРАВКА СООБЩЕНИЯ С INLINE-КНОПКОЙ ===
+// === ОТПРАВКА С INLINE-КНОПКАМИ ===
 // ============================================
 
-async function sendMessage(message, withButton = false) {
+async function sendMessageWithButtons(message, keyboard) {
     try {
         const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
         const body = {
@@ -246,24 +226,13 @@ async function sendMessage(message, withButton = false) {
             parse_mode: 'Markdown',
             disable_web_page_preview: true
         };
-
-        if (withButton) {
-            body.reply_markup = {
-                inline_keyboard: [[
-                    {
-                        text: '📱 Открыть Mini App',
-                        url: MINI_APP_URL
-                    }
-                ]]
-            };
-        }
+        if (keyboard) body.reply_markup = { inline_keyboard: keyboard };
 
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
         });
-
         const result = await response.json();
         if (result.ok) return { sent: true, message: 'OK' };
         return { sent: false, message: result.description };
@@ -284,10 +253,11 @@ async function fetchNews(limit = 5) {
             if (!response.ok) continue;
             const data = await response.json();
             if (data && data.items) {
-                const items = data.items.slice(0, 2).map(item => ({
+                const items = data.items.slice(0, 3).map(item => ({
                     title: item.title,
                     url: item.link,
-                    source: source.name
+                    source: source.name,
+                    published_at: item.pubDate || new Date().toISOString()
                 }));
                 allNews = allNews.concat(items);
             }
@@ -333,41 +303,30 @@ async function fetchMarketSummary() {
     try {
         const globalRes = await fetch('https://api.coingecko.com/api/v3/global');
         const globalData = globalRes.ok ? await globalRes.json() : null;
-
         const btcRes = await fetch(
             'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum&order=market_cap_desc&sparkline=false'
         );
         const btcData = btcRes.ok ? await btcRes.json() : [];
-
         const btc = btcData.find(c => c.id === 'bitcoin') || {};
         const eth = btcData.find(c => c.id === 'ethereum') || {};
 
-        let totalMarketCap = 'н/д';
-        let btcDominance = 'н/д';
-        let ethDominance = 'н/д';
-
+        let totalMarketCap = 'н/д', btcDominance = 'н/д', ethDominance = 'н/д';
         if (globalData && globalData.data) {
             const cap = globalData.data.total_market_cap?.usd;
             if (cap >= 1e12) totalMarketCap = '$' + (cap / 1e12).toFixed(2) + 'T';
             else if (cap >= 1e9) totalMarketCap = '$' + (cap / 1e9).toFixed(0) + 'B';
-
             const mcp = globalData.data.market_cap_percentage || {};
             if (mcp.btc) btcDominance = mcp.btc.toFixed(1) + '%';
             if (mcp.eth) ethDominance = mcp.eth.toFixed(1) + '%';
         }
 
         return {
-            totalMarketCap,
-            btcDominance,
-            ethDominance,
+            totalMarketCap, btcDominance, ethDominance,
             btcPrice: btc.current_price ? btc.current_price.toLocaleString() : 'н/д',
             btcChange: btc.price_change_percentage_24h ? btc.price_change_percentage_24h.toFixed(2) : '0',
             avgChange: btc.price_change_percentage_24h || 0
         };
-    } catch (e) {
-        console.error('Ошибка рынка:', e.message);
-        return null;
-    }
+    } catch (e) { return null; }
 }
 
 async function fetchTopCoins() {
@@ -381,23 +340,18 @@ async function fetchTopCoins() {
             price: coin.current_price ? coin.current_price.toLocaleString() : '0',
             change: coin.price_change_percentage_24h ? coin.price_change_percentage_24h.toFixed(2) : '0'
         }));
-    } catch (e) {
-        return [];
-    }
+    } catch (e) { return []; }
 }
 
 // ============================================
-// === ВРЕМЯ МОСКВЫ ===
+// === МОСКОВСКОЕ ВРЕМЯ ===
 // ============================================
 
 function formatMoscowTime() {
     const now = new Date();
     const msk = new Date(now.getTime() + (3 * 60 + now.getTimezoneOffset()) * 60000);
     return msk.toLocaleString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
     });
 }
