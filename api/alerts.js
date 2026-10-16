@@ -8,7 +8,7 @@ const KV_URL = process.env.KV_REST_API_URL || process.env.STORAGE_URL || process
 const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.STORAGE_TOKEN || process.env.STORAGE_KV_REST_API_TOKEN;
 
 // ⚠️ ЗАМЕНИТЕ НА ВАШ ТОКЕН
-const BOT_TOKEN = '8381752054:ВАШ_ПОЛНЫЙ_ТОКЕН';
+const BOT_TOKEN = '8381752054:AAH6PbcijT-hDcgPn8iO_DPu1bwTO1Z5d08';
 
 async function kvGet(key) {
     const r = await fetch(`${KV_URL}/get/${key}`, {
