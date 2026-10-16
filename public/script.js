@@ -1,9 +1,10 @@
 // ============================================
-// CoinDigest — клиентская логика (Релизы 1+2)
+// CoinDigest — клиентская логика (Релизы 1+2 + алерты через KV)
 // ============================================
 
 const API = '/api/news?secret=coindigest_2026';
 const AI_API = '/api/ai?secret=coindigest_2026';
+const ALERTS_API = '/api/alerts?secret=coindigest_2026';
 const LS_PREFIX = 'coindigest_';
 
 const LS = {
@@ -17,6 +18,9 @@ const LS = {
 
 const tg = window.Telegram?.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
+
+const tgUserId = tg?.initDataUnsafe?.user?.id || null;
+const tgUsername = tg?.initDataUnsafe?.user?.username || '';
 
 // ============================================
 // СОСТОЯНИЕ
@@ -40,17 +44,14 @@ const state = {
     readNews: LS.get('readNews', []),
     ads: LS.get('ads', []),
 
-    // Портфель
     portfolio: LS.get('portfolio', []),
     priceCache: {},
 
-    // Алерты
-    alerts: LS.get('alerts', []),
+    alerts: [],
     calendarReminders: LS.get('calendarReminders', []),
 };
 
-// Лимит алертов
-const ALERTS_LIMIT = 3;
+const ALERTS_LIMIT = 20;
 
 // ============================================
 // НАВИГАЦИЯ
@@ -73,7 +74,7 @@ function switchPage(page) {
     if (page === 'news' && state.news.length === 0) loadNews();
     if (page === 'calendar' && state.calendar.length === 0) loadCalendar();
     if (page === 'portfolio') renderPortfolio();
-    if (page === 'alerts') renderAlerts();
+    if (page === 'alerts') loadAlertsFromServer();
 }
 
 // ============================================
@@ -261,7 +262,6 @@ async function loadMarket() {
             all = all.concat(d);
         }
         state.marketCoins = all;
-        // Кэшируем цены для портфеля и алертов
         all.forEach(c => state.priceCache[c.id] = c.current_price);
         renderMarket();
     } catch (e) {
@@ -325,7 +325,6 @@ function renderMarket() {
     tbody.appendChild(frag);
 }
 
-// Сортировка
 document.querySelectorAll('.market-table th[data-sort]').forEach(th => {
     th.addEventListener('click', () => {
         const field = th.dataset.sort;
@@ -571,7 +570,6 @@ function openPortfolioAddModal(presetCoin) {
             });
         });
     } else {
-        // Поиск монеты
         showModal(`
             <h3><i class="fas fa-search"></i> Добавить монету</h3>
             <div class="modal-field">
@@ -605,7 +603,6 @@ function openPortfolioAddModal(presetCoin) {
                                 </div>`;
                             item.addEventListener('click', async () => {
                                 closeModal();
-                                // Получаем полную инфу для модалки
                                 try {
                                     const rr = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${c.id}`);
                                     const dd = await rr.json();
@@ -639,7 +636,6 @@ async function renderPortfolio() {
         return;
     }
 
-    // Загружаем актуальные цены
     const ids = state.portfolio.map(p => p.id).join(',');
     try {
         const r = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&sparkline=false&price_change_percentage=24h,7d`);
@@ -731,7 +727,6 @@ function renderPie(portfolio, priceMap, totalValue) {
         start = end;
     });
 
-    // Внутренний круг — для "дырки"
     paths += `<circle cx="${cx}" cy="${cy}" r="${radius - stroke / 2}" fill="var(--card)" />`;
 
     el.innerHTML = `<svg width="160" height="160" viewBox="0 0 160 160">${paths}</svg>`;
@@ -745,14 +740,78 @@ function sharePortfolio() {
 }
 
 // ============================================
-// АЛЕРТЫ
+// АЛЕРТЫ (работа с сервером через Vercel KV)
 // ============================================
 
+// Загрузка алертов с сервера
+async function loadAlertsFromServer() {
+    if (!tgUserId) {
+        state.alerts = [];
+        renderAlerts();
+        return;
+    }
+    try {
+        const r = await fetch(`${ALERTS_API}&userId=${tgUserId}`);
+        const d = await r.json();
+        if (d.success) state.alerts = d.alerts || [];
+    } catch (e) {
+        console.error('Ошибка загрузки алертов:', e);
+        state.alerts = [];
+    }
+    renderAlerts();
+}
+
+// Создание алерта на сервере
+async function createAlertOnServer(data) {
+    if (!tgUserId) {
+        toast('Откройте в Telegram для создания алертов');
+        return null;
+    }
+    try {
+        const r = await fetch(ALERTS_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                secret: 'coindigest_2026',
+                userId: tgUserId,
+                username: tgUsername,
+                coinId: data.coinId,
+                symbol: data.symbol,
+                name: data.name,
+                condition: data.condition,
+                price: data.price,
+            })
+        });
+        const d = await r.json();
+        if (!d.success) { toast(d.error || 'Ошибка'); return null; }
+        if (d.hint) toast(d.hint);
+        return d.alert;
+    } catch (e) {
+        toast('Ошибка сети');
+        return null;
+    }
+}
+
+// Удаление алерта на сервере
+async function deleteAlertOnServer(alertId) {
+    if (!tgUserId) return;
+    try {
+        await fetch(`${ALERTS_API}&userId=${tgUserId}&alertId=${alertId}`, {
+            method: 'DELETE'
+        });
+    } catch (e) {}
+}
+
+// Открытие модалки создания алерта
 document.getElementById('alertAddBtn')?.addEventListener('click', openAlertModal);
 
 function openAlertModal() {
+    if (!tgUserId) {
+        toast('Откройте приложение в Telegram');
+        return;
+    }
     if (state.alerts.length >= ALERTS_LIMIT) {
-        toast(`Лимит: ${ALERTS_LIMIT} алерта`);
+        toast(`Лимит: ${ALERTS_LIMIT} алертов`);
         return;
     }
     showModal(`
@@ -773,6 +832,11 @@ function openAlertModal() {
         <div class="modal-field">
             <label class="modal-label">Цена (USD)</label>
             <input class="modal-input" id="alPrice" type="number" step="any" placeholder="100000" />
+        </div>
+        <div class="modal-hint" style="margin-bottom:12px;">
+            ⚠️ Перед первым алертом обязательно напишите боту
+            <a href="https://t.me/Coindigest22bot" target="_blank" style="color:var(--accent);">@Coindigest22bot</a>
+            команду /start — иначе уведомления не придут.
         </div>
         <div class="modal-actions">
             <button class="modal-cancel" data-close>Отмена</button>
@@ -817,27 +881,37 @@ function openAlertModal() {
             }, 300);
         });
 
-        saveBtn.addEventListener('click', () => {
+        saveBtn.addEventListener('click', async () => {
             if (!selectedCoin) { toast('Выберите монету'); return; }
             const price = parseFloat(modal.querySelector('#alPrice').value);
             const condition = modal.querySelector('#alCondition').value;
             if (!price || price <= 0) { toast('Укажите цену'); return; }
-            state.alerts.push({
-                id: Date.now().toString(36),
+
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Создание...';
+
+            const alert = await createAlertOnServer({
                 coinId: selectedCoin.id,
                 symbol: selectedCoin.symbol,
                 name: selectedCoin.name,
-                condition, price,
-                createdAt: new Date().toISOString(),
+                condition,
+                price,
             });
-            LS.set('alerts', state.alerts);
-            closeModal();
-            renderAlerts();
-            toast('Алерт создан');
+
+            if (alert) {
+                state.alerts.push(alert);
+                closeModal();
+                renderAlerts();
+                toast('Алерт создан');
+            } else {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Создать';
+            }
         });
     });
 }
 
+// Рендер алертов
 function renderAlerts() {
     const list = document.getElementById('alertsList');
     if (!state.alerts.length) {
@@ -847,18 +921,19 @@ function renderAlerts() {
     list.innerHTML = '';
     state.alerts.forEach(a => {
         const item = document.createElement('div');
-        item.className = 'alert-item';
+        item.className = 'alert-item' + (a.notified ? ' triggered' : '');
         const conditionText = a.condition === 'above' ? 'выше' : 'ниже';
         item.innerHTML = `
             <div class="alert-icon"><i class="fas fa-bell"></i></div>
             <div class="alert-info">
                 <div class="alert-title">${a.symbol} — цена ${conditionText} $${formatPrice(a.price)}</div>
-                <div class="alert-meta">${a.name}</div>
+                <div class="alert-meta">${a.name}${a.notified ? ' • ✅ Сработал' : ''}</div>
             </div>
             <button class="alert-del" title="Удалить"><i class="fas fa-trash"></i></button>`;
-        item.querySelector('.alert-del').addEventListener('click', () => {
+        item.querySelector('.alert-del').addEventListener('click', async () => {
+            if (!confirm('Удалить этот алерт?')) return;
+            await deleteAlertOnServer(a.id);
             state.alerts = state.alerts.filter(x => x.id !== a.id);
-            LS.set('alerts', state.alerts);
             renderAlerts();
             toast('Алерт удалён');
         });
